@@ -19,7 +19,6 @@ C_TESTS =				\
 	hsva   \
 	types			\
 	palette \
-	extract \
 	nop \
 	n_components		\
 	n_components_cast \
