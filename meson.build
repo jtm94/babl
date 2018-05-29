@@ -150,6 +150,7 @@ build_platform_win32 = (build_os.startswith('mingw') or
 # Extra warnings
 
 extra_warnings_list = [
+  '-Ofast',
   '-Wdeclaration-after-statement',
   '-Winit-self',
   '-Wmissing-declarations',
