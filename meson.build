@@ -256,6 +256,7 @@ endforeach
 # general
 check_functions = [
   ['HAVE_GETTIMEOFDAY', 'gettimeofday'],
+  ['HAVE_RINT',         'rint'        ],  
   ['HAVE_SRANDOM',      'srandom'     ],
 ]
 foreach func: check_functions
