@@ -32,6 +32,12 @@ test_env = environment()
 test_env.prepend('LD_LIBRARY_PATH', join_paths(meson.build_root(), 'babl'))
 test_env.set('GI_TYPELIB_PATH', join_paths(meson.build_root(), 'babl'))
 test_env.set('BABL_PATH', join_paths(meson.build_root(), 'extensions'))
+if wslenv
+  test_env.prepend('PATH', join_paths(meson.build_root(), 'babl'))
+  # Helper env variable for wsl
+  test_env.set('WSLENV', 'BABL_PATH/p:PATH/l')
+endif
+
 foreach test_name : test_names
   test = executable(
     test_name,

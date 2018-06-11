@@ -17,11 +17,24 @@ babl_css = configure_file(input : 'babl.css',
   output : 'babl.css',
   configuration : configuration_data())
 
+index_html_tmp_env = [
+  'BABL_PATH='+ join_paths(meson.build_root(), 'extensions'),
+]
+if wslenv
+  # Pass lib path to exe wrapper 
+  index_html_tmp_env += [
+    'WSLPATH_PRE=' + join_paths(meson.build_root(), 'babl'),
+  ]
+  # Helper env variable for wsl
+  index_html_tmp_env += 'WSLENV=BABL_PATH/p:PATH/l'
+endif
+
 index_html_tmp = custom_target('index.html.tmp',
   input : [ babl_html_dump, ],
   output: [ 'index.html.tmp', ],
   command: [
     env_bin,
+    index_html_tmp_env,
     'BABL_PATH='+ join_paths(meson.build_root(), 'extensions'),
     babl_html_dump
   ],

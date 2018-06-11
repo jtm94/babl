@@ -148,6 +148,10 @@ build_platform_win32 = (build_os.startswith('mingw') or
 # Only run cross compile objects if we have exe wrapper
 cc_can_run = not meson.is_cross_build() or meson.has_exe_wrapper()
 
+# Check for wslenv flag in cross file
+wslenv = meson.get_cross_property('wslenv', false)
+
+
 ################################################################################
 # Compiler arguments
 
