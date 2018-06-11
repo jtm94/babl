@@ -145,6 +145,8 @@ build_platform_win32 = (build_os.startswith('mingw') or
                         build_os.startswith('cygwin') or
                         build_os.startswith('windows'))
 
+# Only run cross compile objects if we have exe wrapper
+cc_can_run = not meson.is_cross_build() or meson.has_exe_wrapper()
 
 ################################################################################
 # Compiler arguments
@@ -296,7 +298,7 @@ endif
 ################################################################################
 # Build utilities
 
-env_bin = find_program('env', required: true, native: true)
+env_bin = find_program('env', required: false, native: true)
 git_bin = find_program('git', required: false, native: true)
 rsvg_convert_bin = find_program('rsvg-convert', required: false,
   native: true)
@@ -347,7 +349,11 @@ subdir('extensions')
 subdir('tests')
 subdir('tools')
 if get_option('with-docs')
-  subdir('docs')
+  if cc_can_run and env_bin.found() and not build_platform_win32
+    subdir('docs')
+  else
+    warning('Unable to generate docs in this environment')
+  endif
 endif
 
 
