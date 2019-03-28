@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -74,7 +74,7 @@ static unsigned char defpal_data[4*16] =
 0  ,255,255,255,
 255,255,255,255,
 };
-static double defpal_double[4*8*16];
+static double defpal_double[4*16];
 static BablPaletteRadius defpal_radii[15 * 16];
 
 
@@ -239,7 +239,11 @@ babl_palette_lookup (BablPalette         *pal,
     }
 }
 
-static BablPalette *make_pal (const Babl *format, const void *data, int count)
+static BablPalette *
+make_pal (const Babl *pal_space, 
+          const Babl *format, 
+          const void *data, 
+          int         count)
 {
   BablPalette *pal = NULL;
   int bpp = babl_format_get_bytes_per_pixel (format);
@@ -258,9 +262,9 @@ static BablPalette *make_pal (const Babl *format, const void *data, int count)
 
   memcpy (pal->data, data, bpp * count);
 
-  babl_process (babl_fish (format, babl_format ("RGBA double")),
+  babl_process (babl_fish (format, babl_format_with_space ("RGBA double", pal_space)),
                 data, pal->data_double, count);
-  babl_process (babl_fish (format, babl_format ("R'G'B'A u8")),
+  babl_process (babl_fish (format, babl_format_with_space ("R'G'B'A u8", pal_space)),
                 data, pal->data_u8, count);
 
   babl_palette_init_radii (pal);
@@ -270,7 +274,8 @@ static BablPalette *make_pal (const Babl *format, const void *data, int count)
   return pal;
 }
 
-static void babl_palette_free (BablPalette *pal)
+static void 
+babl_palette_free (BablPalette *pal)
 {
   babl_free (pal->data);
   babl_free (pal->data_double);
@@ -279,7 +284,8 @@ static void babl_palette_free (BablPalette *pal)
   babl_free (pal);
 }
 
-static BablPalette *default_palette (void)
+static BablPalette *
+default_palette (void)
 {
   static BablPalette pal;
   static int inited = 0;
@@ -448,7 +454,10 @@ pala_to_rgba (Babl *conversion,
               void *src_model_data)
 {
   BablPalette **palptr = src_model_data;
-  BablPalette *pal = *palptr;
+  BablPalette *pal;
+
+  assert(palptr);
+  pal  = *palptr;
 
   assert(pal);
   while (n--)
@@ -670,8 +679,10 @@ pala_u8_to_rgba_u8 (Babl          *conversion,
 #include "base/util.h"
 
 static inline long
-conv_pal8_pala8 (Babl *conversion,
-                 unsigned char *src, unsigned char *dst, long samples)
+conv_pal8_pala8 (Babl          *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long           samples)
 {
   long n = samples;
 
@@ -686,8 +697,10 @@ conv_pal8_pala8 (Babl *conversion,
 }
 
 static inline long
-conv_pala8_pal8 (Babl *conversion,
-                 unsigned char *src, unsigned char *dst, long samples)
+conv_pala8_pal8 (Babl          *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long           samples)
 {
   long n = samples;
 
@@ -708,12 +721,12 @@ babl_format_is_palette (const Babl *format)
   return 0;
 }
 
-/* should return the BablModel, permitting to fetch
- * other formats out of it?
- */
-const Babl *babl_new_palette (const char  *name,
-                              const Babl **format_u8,
-                              const Babl **format_u8_with_alpha)
+
+const Babl *
+babl_new_palette_with_space (const char  *name,
+                             const Babl  *space,
+                             const Babl **format_u8,
+                             const Babl **format_u8_with_alpha)
 {
   const Babl *model;
   const Babl *model_no_alpha;
@@ -725,6 +738,9 @@ const Babl *babl_new_palette (const char  *name,
 
   char  cname[64];
 
+  if (!space)
+    space = babl_space ("sRGB");
+
   if (!name)
     {
       static int cnt = 0;
@@ -733,7 +749,7 @@ const Babl *babl_new_palette (const char  *name,
     }
   else
     {
-      strcpy (cname, name);
+      snprintf (cname, sizeof (cname), "%s-%p", name, space);
       name = cname;
 
       if ((model = babl_db_exist_by_name (babl_model_db (), name)))
@@ -761,11 +777,11 @@ const Babl *babl_new_palette (const char  *name,
   cname[0] = 'v';
   model_no_alpha = babl_model_new ("name", name, component, NULL);
   cname[0] = '\\';
-  f_pal_a_u8 = (void*) babl_format_new ("name", name, model,
+  f_pal_a_u8 = (void*) babl_format_new ("name", name, model, space,
                                 babl_type ("u8"),
                                 component, alpha, NULL);
   cname[0] = ')';
-  f_pal_u8  = (void*) babl_format_new ("name", name, model_no_alpha,
+  f_pal_u8  = (void*) babl_format_new ("name", name, model_no_alpha, space,
                                babl_type ("u8"),
                                component, NULL);
 
@@ -864,6 +880,18 @@ const Babl *babl_new_palette (const char  *name,
   return model;
 }
 
+/* should return the BablModel, permitting to fetch
+ * other formats out of it?
+ */
+const Babl *
+babl_new_palette (const char  *name,
+                  const Babl **format_u8,
+                  const Babl **format_u8_with_alpha)
+{
+  return babl_new_palette_with_space (name, NULL,
+                                      format_u8, format_u8_with_alpha);
+}
+
 void
 babl_palette_set_palette (const Babl *babl,
                           const Babl *format,
@@ -872,9 +900,19 @@ babl_palette_set_palette (const Babl *babl,
 {
   BablPalette **palptr = babl_get_user_data (babl);
   babl_palette_reset (babl);
+
+  if (count > 256)
+    {
+      babl_log ("attempt to create a palette with %d colors. "
+                "truncating to 256 colors.",
+                count);
+
+      count = 256;
+    }
+
   if (count > 0)
     {
-      *palptr = make_pal (format, data, count);
+      *palptr = make_pal (babl_format_get_space (babl), format, data, count);
     }
   else
     {

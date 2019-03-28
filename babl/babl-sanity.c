@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -29,7 +29,8 @@ foo (Babl *babl,
   return 0;
 }
 
-static Babl *babl_conversion_destination (Babl *babl);
+static Babl *
+babl_conversion_destination (Babl *babl);
 
 static int
 type_sanity (Babl *babl,
@@ -69,7 +70,7 @@ model_sanity (Babl *babl,
               void *user_data)
 {
   /* ensure that every type has reference conversions to
-   * and from rgba */
+   * and from RGBA / cmykA */
   int      ok, i;
   BablList *list;
 
@@ -79,17 +80,22 @@ model_sanity (Babl *babl,
     {
       for (i = 0; i < babl_list_size (list); i++)
         {
-          if (babl_conversion_destination ((Babl *) list->items[i]) == babl_model_from_id (BABL_RGBA))
+          if (babl_conversion_destination ((Babl *) list->items[i]) == babl_model_from_id (BABL_RGBA) ||
+             babl_conversion_destination ((Babl *) list->items[i]) == babl_model ("cmykA"))
             {
               ok = 1;
               break;
             }
         }
     }
+
+  if (ok == 0 && babl == babl_model ("cmykA"))
+    ok = 1;
+
   if (!ok)
     {
       OK = 0;
-      babl_log ("lack of sanity! model '%s' has no conversion to 'rgba'",
+      babl_log ("lack of sanity! model '%s' has no conversion to 'RGBA' or 'cmykA'",
                 babl->instance.name);
     }
 
@@ -131,7 +137,8 @@ babl_sanity (void)
   return OK;
 }
 
-static Babl *babl_conversion_destination (Babl *babl)
+static Babl *
+babl_conversion_destination (Babl *babl)
 {
   return (Babl *)babl->conversion.destination;
 }

@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -27,7 +27,8 @@
 #include "babl-ref-pixels.h"
 
 
-static int babl_format_destruct (void *babl)
+static int 
+babl_format_destruct (void *babl)
 {
   BablFormat *format = babl;
   if (format->image_template != NULL)
@@ -49,8 +50,8 @@ format_new (const char      *name,
             int              components,
             BablModel       *model,
             const Babl      *space,
-            BablComponent **component,
-            BablSampling  **sampling,
+            BablComponent  **component,
+            BablSampling   **sampling,
             const BablType **type)
 {
   Babl *babl;
@@ -131,7 +132,8 @@ format_new (const char      *name,
 }
 
 Babl *
-format_new_from_format_with_space (const Babl *format, const Babl *space)
+format_new_from_format_with_space (const Babl *format, 
+                                   const Babl *space)
 {
   Babl *ret;
   char new_name[256];
@@ -143,12 +145,13 @@ format_new_from_format_with_space (const Babl *format, const Babl *space)
 
   ret = format_new (new_name,
                     0,
-                    format->format.planar, format->format.components, 
+                    format->format.planar, format->format.components,
                     (void*)babl_remodel_with_space (BABL(format->format.model), space),
                     space,
                     format->format.component, format->format.sampling, (void*)format->format.type);
 
-
+  ret->format.encoding = babl_get_name(format);
+  babl_db_insert (db, (void*)ret);
   return ret;
 }
 
@@ -673,7 +676,8 @@ babl_get_user_data (const Babl *babl)
 }
 
 void
-babl_set_user_data (const Babl *cbabl, void *data)
+babl_set_user_data (const Babl *cbabl, 
+                    void       *data)
 {
   Babl *babl = (Babl*) cbabl;
   switch (cbabl->instance.class_type)
@@ -710,12 +714,32 @@ const Babl * babl_format_get_space      (const Babl *format)
 
 BABL_CLASS_IMPLEMENT (format)
 
-const Babl *
-babl_format_with_space (const char *name, const Babl *space)
+const char *
+babl_format_get_encoding (const Babl *babl)
 {
-  const Babl *ret = NULL;
+  if (!babl) return NULL;
+  if (babl->format.encoding) return babl->format.encoding;
+  return babl_get_name (babl);
+}
 
-  if (!space) space = babl_space ("sRGB");
+const Babl *
+babl_format_with_space (const char *encoding, const Babl *space)
+{
+  const Babl *example_format = (void*) encoding;
+  if (!encoding) return NULL;
+
+  if (BABL_IS_BABL (example_format))
+  {
+    encoding = babl_get_name (example_format);
+    if (babl_format_get_space (example_format) != babl_space ("sRGB"))
+    {
+      encoding = babl_format_get_encoding (example_format);
+    }
+  }
+
+  if (!space)
+    space = babl_space ("sRGB");
+
   if (space->class_type == BABL_FORMAT)
   {
     space = space->format.space;
@@ -728,24 +752,20 @@ babl_format_with_space (const char *name, const Babl *space)
   {
     return NULL;
   }
+  example_format = babl_format (encoding);
+
   if (space == babl_space("sRGB"))
-    return babl_format (name);
+    return example_format;
 
+  if (babl_format_is_palette (example_format))
   {
-    char *new_name = babl_malloc (strlen (name) +
-                                  strlen (babl_get_name ((Babl*)space)) + 2);
-    sprintf (new_name, "%s-%s", name, babl_get_name ((Babl*)space));
-
-    ret = babl_db_exist_by_name (db, new_name);
-
-    babl_free (new_name);
-    if (ret)
-      return ret;
-
-    ret = format_new_from_format_with_space (babl_format (name), space);
-    babl_db_insert (db, (void*)ret);
+    /* XXX we should allocate a new palette name, and 
+           duplicate the path data, converted for new space
+     */
+    return example_format;
   }
-  return ret;
+
+  return format_new_from_format_with_space (example_format, space);
 }
 
 int

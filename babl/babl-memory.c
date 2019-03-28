@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -180,9 +180,12 @@ babl_free (void *ptr,
   if (!IS_BAI (ptr))
     {
       #define IS_BAI(ptr)    (BAI (ptr)->signature == signature)
-      if (freed)
-        babl_fatal ("\nbabl:double free detected\n------------------------");
-      babl_fatal ("memory not allocated by babl allocator");
+      if (freed == BAI (ptr)->signature)
+        fprintf (stderr, "\nbabl:double free detected\n");
+      else
+        fprintf (stderr, "\nbabl_free passed unknown pointer, bailing and leaking it\n");
+      return;
+      //assert(0);
     }
 
   if (BAI (ptr)->destructor)

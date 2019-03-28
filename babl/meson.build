@@ -1,6 +1,21 @@
 bablInclude = include_directories('.')
 subdir('base')
 
+version_script = 'babl.map'
+export_symbols = join_paths(meson.source_root(), 'export-symbols')
+version_script_target = custom_target(version_script,
+  input : [ export_symbols, ] ,
+  output: [ version_script ] ,
+  command: [
+  'python',
+  join_paths(meson.source_root(), 'gen_babl_map.py'),
+  export_symbols,
+  version_script,
+  ],
+  capture: true,
+)
+
+
 # Linker arguments
 babl_link_args = [
   '-Wl,--version-script,' + version_script,
@@ -115,7 +130,8 @@ babl = library(
   cpp_args: [ '-DLIBDIR="' + join_paths(get_option('prefix'), get_option('libdir')) + '"', ],
   link_whole: [ babl_base, ],
   link_args: [ babl_link_args, ],
-  dependencies: [ math, thread, dl, ],
+  dependencies: [ math, thread, dl, lcms, ],
+  link_depends: [ version_script_target, ],
   version: so_version,
   install: true,
 )

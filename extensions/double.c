@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -28,7 +28,8 @@
 
 
 static void
-conv_rgbaD_linear_rgbAD_gamma (const Babl *conversion,unsigned char *src,
+conv_rgbaD_linear_rgbAD_gamma (const Babl    *conversion,
+                               unsigned char *src,
                                unsigned char *dst,
                                long           samples)
 {
@@ -42,10 +43,18 @@ conv_rgbaD_linear_rgbAD_gamma (const Babl *conversion,unsigned char *src,
    while (n--)
      {
        double alpha = fsrc[3];
+       if (alpha <= BABL_ALPHA_FLOOR)
+       {
+         if (alpha >= 0.0f)
+           alpha = BABL_ALPHA_FLOOR;
+         else if (alpha >= -BABL_ALPHA_FLOOR)
+           alpha = -BABL_ALPHA_FLOOR;
+       }
        *fdst++ = babl_trc_from_linear (trc[0], *fsrc++) * alpha;
        *fdst++ = babl_trc_from_linear (trc[1], *fsrc++) * alpha;
        *fdst++ = babl_trc_from_linear (trc[2], *fsrc++) * alpha;
-       *fdst++ = *fsrc++;
+       *fdst++ = alpha;
+       fsrc++;
      }
 }
 
@@ -65,20 +74,13 @@ conv_rgbAD_linear_rgbAD_gamma (const Babl    *conversion,
    while (n--)
      {
        double alpha = fsrc[3];
-       if (alpha < BABL_ALPHA_THRESHOLD)
+       if (alpha == 0.0)
          {
            *fdst++ = 0.0;
            *fdst++ = 0.0;
            *fdst++ = 0.0;
            *fdst++ = 0.0;
            fsrc+=4;
-         }
-       else if (alpha >= 1.0)
-         {
-           *fdst++ = babl_trc_from_linear (trc[0], *fsrc++) * alpha;
-           *fdst++ = babl_trc_from_linear (trc[1], *fsrc++) * alpha;
-           *fdst++ = babl_trc_from_linear (trc[2], *fsrc++) * alpha;
-           *fdst++ = *fsrc++;
          }
        else
          {
@@ -92,7 +94,8 @@ conv_rgbAD_linear_rgbAD_gamma (const Babl    *conversion,
 }
 
 static void
-conv_rgbaD_linear_rgbaD_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbaD_linear_rgbaD_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -115,7 +118,8 @@ conv_rgbaD_linear_rgbaD_gamma (const Babl *conversion,unsigned char *src,
 #define conv_rgbaD_linear_rgbD_linear conv_rgbaD_gamma_rgbD_gamma
 
 static void
-conv_rgbaD_linear_rgbD_linear (const Babl *conversion,unsigned char *src,
+conv_rgbaD_linear_rgbD_linear (const Babl    *conversion,
+                               unsigned char *src,
                                unsigned char *dst,
                                long           samples)
 {
@@ -134,7 +138,8 @@ conv_rgbaD_linear_rgbD_linear (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_rgbD_linear_rgbD_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbD_linear_rgbD_gamma (const Babl    *conversion,
+                             unsigned char *src, 
                              unsigned char *dst, 
                              long           samples)
 {
@@ -154,7 +159,8 @@ conv_rgbD_linear_rgbD_gamma (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_rgbaD_gamma_rgbaD_linear (const Babl *conversion,unsigned char *src, 
+conv_rgbaD_gamma_rgbaD_linear (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -174,7 +180,8 @@ conv_rgbaD_gamma_rgbaD_linear (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_rgbD_gamma_rgbD_linear (const Babl *conversion,unsigned char *src, 
+conv_rgbD_gamma_rgbD_linear (const Babl    *conversion,
+                             unsigned char *src, 
                              unsigned char *dst, 
                              long           samples)
 {
@@ -194,7 +201,8 @@ conv_rgbD_gamma_rgbD_linear (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_rgbD_linear_rgbaD_linear (const Babl *conversion,unsigned char *src, 
+conv_rgbD_linear_rgbaD_linear (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {

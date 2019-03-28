@@ -119,12 +119,13 @@
       <li>Extendable with new formats, color models, components
       and datatypes.</li>
       <li>Can load color spaces from ICC v2 and v4 profiles containing RGB
-          matrix + TRC.</li>
+          matrix + TRC, or CMYK profiles.</li>
       <li>Reference 64bit floating point conversions for datatypes and color
-          models.</li>
-      <li>Self profiling and optimizing, optimizing accuracy and performance at
-          runtime when the best performing single or multi-step conversion
-          path is chosen.</li>
+          models, with 32bit floating point reference speed-ups in some places.
+      </li>
+      <li>Self profiling/validating and optimizing, optimizing accuracy and
+performance at runtime when the best performing single or multi-step conversion
+path is chosen.</li>
     </ul>
 
     <p><a href='http://www.gegl.org/'>GEGL</a> through <a
@@ -144,7 +145,6 @@
     It can be <a href='http://git.gnome.org/cgit/babl'>browsed online</a> and cloned with:
     </p>
     <pre>git clone git://git.gnome.org/babl</pre>
-
 
     <a name='NEWS'></a>
     <h2>NEWS</h2>
@@ -259,32 +259,44 @@ lab_buffer  = malloc (pixel_count * 3 * sizeof (float));
   <a name='ColorManagement'></a>
   <h2>Color Management</h2>
 
-  <p>By default the babl API is assuming data to be (unbounded) sRGB data, data
-  being sRGB defines the conversion to and from gray-scale as well as the gamma
+  <p>All pixel formats in babl have a specified color space, if NULL is passed
+as a space constants for (unbounded) linear sRGB data is assumed, data being
+sRGB defines the conversion to and from gray-scale as well as the gamma
   - or Transfer Response Curve, TRC, used for converting between linear and
-  non-linear variants of the data.
-  </p>
+    non-linear variants of the data.</p>
 
-  <p>There is also a babl API call for creating a format for a specific space.
-  <tt>babl_format_with_space("R'G'B' u16", babl_space ("Rec2020"))</tt> creates
-  a 16 bit integer format for the Rec2020 color space. Babl knows internally
-  about "sRGB", "Rec2020", "Adobe", "Apple" and "ProPhoto" spaces, as they are
-  defined with constants on their wikipedia pages.
-  </p>
+  <p>babl has API for creating a format for a specific space:
+<tt>babl_format_with_space("R'G'B' u16", babl_space ("Rec2020"))</tt> creates a
+16 bit integer format for the Rec2020 color space. Babl knows internally about
+"sRGB", "Rec2020", "Adobe", "Apple", "ProPhoto", "ACEScg" and "ACES2065-1"
+spaces, as they are defined with constants on their wikipedia pages or similar upstream references.</p>
 
   <p>Additional spaces can be loaded from monitor-class matrix+TRC ICC v2 and
   v4 profiles. Using babl_icc_make_space (see babl.h for details). The space of
   a babl format can also be queried with babl_format_get_space.
   </p>
 
-  <p>The conversions babl does with ICC profiles are according to what is known
-  as the relative-colorimetric intent, monitor profiles containing both the
-  matrices used by babl and 3d CLUTs (color look up tables) most often also do
-  relative-colorimetric transfer for the "perceptual" intent CLUTs, but with
-  a more flexible and possibly higher accuracy conversions. If babl adds support
-  for loading and using CLUTs it will be thus the perceptual
-  intent will by babl be considered a different albeit more accurate
-  relative-colorimetric RGB space.</p>
+  <a name='cmyk'></a>
+  <h2>CMYK</h2>
+
+  <p>CMYK handling is done using babl-spaces created with ICC profiles
+containing CMYK profiles. BablSpaces for these ICC profiles handle color conversions using lcms2 - or if compiled without lcms2 support a naive profile independent fallback.</p>
+  <p>When a babl space derived from a CMYK ICC profile is used to instantiate
+RGB formats, the resulting formats are using the default/NULL space for
+primaries and TRCs.</p>
+
+  <p>The CMYK formats that use lcms2 for color interchange with the rest of
+babl are the following, which are available for all data types, u8, u16, half
+and float:</p>
+  <dl>
+     <dt>CMYK</dt><dd>Cyan Magenta Yellow Key, with 0 being white and 1.0 full ink coverage.</dd>
+     <dt>CMYKA</dt><dd>as previous, with non-associated alpha channel</dd>
+     <dt>CaMaYaKaA</dt><dd>as previous but premultiplied/associated alpha</dd>
+     <dt>cmyk</dt><dd>inverted CMYK, where 0.0 is full ink coverage and 1.0 is none</dd>
+     <dt>cmykA</dt><dd>as previous, with non-associated alpha channel</dd>
+     <dt>camayakaA</dt><dd>as previous but premultiplied/associated alpha</dd>
+  </dl>
+
 
   <a name='Vocabulary'></a>
   <h3 style='margin-bottom:0em;'>Vocabulary</h3>
@@ -357,6 +369,25 @@ lab_buffer  = malloc (pixel_count * 3 * sizeof (float));
     </div>
         -->
 
+
+  <a name='premultiplied-alpha'></a>
+  <h2>Pre-multiplied alpha</h2>
+
+  <p>babl stores color information in transparent pre-multiplied or associated
+alpha pixels in floating point formats. With floating point pixel formats
+standard way of handling alpha maintains color information very near fully
+transparent pixels - by introducing a limit: BABL_ALPHA_FLOOR which is
+1/65536.0, and treating all alphas beteen zero and this value as this value we
+maintain color information while the discrepancy in behavior gets concealed by
+quantization in 16bit and 8bit formats.
+   </p>
+<p>For images that already are in a premultiplied format on import, this change
+has no impact on its use for pre-multiplied arithmetic, meaning that
+superluminous colors are still supported, it also opens up to GEGL more widely
+expect premultiplied data in more operations which will become a speedup when
+more filters want to integrate in the layer processing pipeline.</p>
+
+<p>There is a <a href='https://www.patreon.com/posts/premultiplied-in-21014115'>post on patreon</a> with further details about the implementation.</p>
 
   <a name='TODO'></a>
 <!--TODO-->          

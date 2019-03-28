@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -104,11 +104,13 @@ match_conversion (Babl *conversion,
 {
   void **data = inout;
 
+
   if ((Babl *) conversion->conversion.destination == (Babl *) *data)
     {
       *data = (void *) conversion;
       return 1;
     }
+
   return 0;
 }
 
@@ -119,16 +121,30 @@ babl_conversion_find (const void *source,
                       const void *destination)
 {
   void *data = (void*)destination;
-  babl_list_each (BABL (source)->type.from_list, match_conversion, &data);
+
+  if (BABL (source)->type.from_list)
+    babl_list_each (BABL (source)->type.from_list, match_conversion, &data);
   if (data != (void*)destination) /* didn't change */
-    return data;
+  {
+    return data; /* found conversion */
+  }
   data = NULL;
 
   if (BABL (source)->class_type == BABL_MODEL)
   {
      const Babl *srgb_source = BABL (source)->model.model ? BABL (source)->model.model:source;
      const Babl *srgb_destination = BABL (destination)->model.model ? BABL (destination)->model.model:destination;
-     Babl *reference = babl_conversion_find (srgb_source, srgb_destination);
+
+
+     Babl *reference;
+
+     if (srgb_source == source && srgb_destination == destination)
+     {
+        fprintf (stderr, "expected finding model conversion %s to %s", babl_get_name (source), babl_get_name (destination));
+        return NULL;
+     }
+
+     reference = babl_conversion_find (srgb_source, srgb_destination);
 
   /* when conversions are sought between models, with non-sRGB chromaticities,
      we create the needed conversions from existing ones on the fly, and
@@ -144,19 +160,19 @@ babl_conversion_find (const void *source,
                             reference->conversion.function.linear,
                             NULL,
                             NULL,
-                            reference->conversion.data);
+                            reference->conversion.data, 1);
         case BABL_CONVERSION_PLANE:
           return _conversion_new ("", 0, source, destination,
                             NULL,
                             reference->conversion.function.plane,
                             NULL,
-                            reference->conversion.data);
+                            reference->conversion.data, 1);
         case BABL_CONVERSION_PLANAR:
           return _conversion_new ("", 0, source, destination,
                             NULL,
                             NULL,
                             reference->conversion.function.planar,
-                            reference->conversion.data);
+                            reference->conversion.data, 1);
      }
   }
   return NULL;
@@ -257,39 +273,56 @@ babl_fish (const void *source,
         if (ffish.fish_path)
           {
             /* we have found suitable fish path in the database */
-            _babl_fish_rig_dispatch (ffish.fish_path);
             return ffish.fish_path;
           }
 
         if (!ffish.fish_fish)
           {
+            const Babl *src_space = (void*)source_format->format.space;
+            const Babl *dst_space = (void*)destination_format->format.space;
             /* we haven't tried to search for suitable path yet */
-            Babl *fish_path = babl_fish_path (source_format, destination_format);
 
-            if (fish_path)
+            if (src_space->space.cmyk.is_cmyk == 0 &&
+                dst_space->space.cmyk.is_cmyk == 0)
               {
-                return fish_path;
-              }
+                Babl *fish_path = babl_fish_path (source_format, destination_format);
+                if (fish_path)
+                  {
+                    return fish_path;
+                  }
 #if 1
-            else
-              {
-                /* there isn't a suitable path for requested formats,
-                 * let's create a dummy BABL_FISH instance and insert
-                 * it into the fish database to indicate that such path
-                 * does not exist.
-                 */
-                char *name = "X"; /* name does not matter */
-                Babl *fish = babl_calloc (1, sizeof (BablFish) + strlen (name) + 1);
+                else
+                  {
+                    /* there isn't a suitable path for requested formats,
+                     * let's create a dummy BABL_FISH instance and insert
+                     * it into the fish database to indicate that such path
+                     * does not exist.
+                     */
+                    char *name = "X"; /* name does not matter */
+                    Babl *fish = babl_calloc (1, sizeof (BablFish) + strlen (name) + 1);
 
-                fish->class_type                = BABL_FISH;
-                fish->instance.id               = babl_fish_get_id (source_format, destination_format);
-                fish->instance.name             = ((char *) fish) + sizeof (BablFish);
-                strcpy (fish->instance.name, name);
-                fish->fish.source               = source_format;
-                fish->fish.destination          = destination_format;
-                babl_db_insert (babl_fish_db (), fish);
-              }
+                    fish->class_type                = BABL_FISH;
+                    fish->instance.id               = babl_fish_get_id (source_format, destination_format);
+                    fish->instance.name             = ((char *) fish) + sizeof (BablFish);
+                    strcpy (fish->instance.name, name);
+                    fish->fish.source               = source_format;
+                    fish->fish.destination          = destination_format;
+                    babl_db_insert (babl_fish_db (), fish);
+                  }
 #endif
+                }
+          }
+        else if (ffish.fish_fish->fish.data)
+          {
+            /* the dummy fish was created by the cache, and we need to manually
+             * show a "missing fast path" warning for it on the first lookup.
+             */
+#if 0
+            _babl_fish_missing_fast_path_warning (ffish.fish_fish->fish.source,
+                                                  ffish.fish_fish->fish.destination);
+#endif
+
+            ffish.fish_fish->fish.data = NULL;
           }
       }
 

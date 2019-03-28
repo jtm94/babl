@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 
@@ -25,15 +25,6 @@
 #include "babl-internal.h"
 #include "babl-db.h"
 #include "babl-ref-pixels.h"
-
-static int model_is_rgba (const Babl *model)
-{
-  const Babl *RGBA = babl_model_from_id (BABL_RGBA);
-  if (model == RGBA || model->model.model == RGBA)
-    return 1;
-  return 0;
-}
-
 
 static void
 babl_conversion_plane_process (BablConversion *conversion,
@@ -52,10 +43,10 @@ babl_conversion_plane_process (BablConversion *conversion,
 
 static void
 babl_conversion_planar_process (const Babl *babl,
-                                const char     *src,
-                                char           *dst,
-                                long            n,
-                                void           *user_data)
+                                const char *src,
+                                char       *dst,
+                                long        n,
+                                void       *user_data)
 {
   BablConversion *conversion = (void*)babl;
   const BablImage *source = (void*)src;
@@ -83,9 +74,9 @@ babl_conversion_planar_process (const Babl *babl,
 
 static void dispatch_plane (const Babl *babl,
                             const char *source,
-                            char *destination,
-                            long n,
-                            void *user_data)
+                            char       *destination,
+                            long        n,
+                            void       *user_data)
 {
   const BablConversion *conversion = &babl->conversion;
   const void *src_data  = NULL;
@@ -150,7 +141,8 @@ _conversion_new (const char    *name,
                  BablFuncLinear linear,
                  BablFuncPlane  plane,
                  BablFuncPlanar planar,
-                 void          *user_data)
+                 void          *user_data,
+                 int            allow_collision)
 {
   Babl *babl = NULL;
 
@@ -228,25 +220,24 @@ _conversion_new (const char    *name,
       const Babl *src_format = NULL;
       const Babl *dst_format = NULL;
 
-      if (model_is_rgba (BABL (babl->conversion.source)) ||
-          model_is_rgba (BABL (babl->conversion.destination)))
-        {
-          src_format = babl_format_with_model_as_type (
-            BABL (babl->conversion.source),
-            babl_type_from_id (BABL_DOUBLE));
-          dst_format = babl_format_with_model_as_type (
-            BABL (babl->conversion.destination),
-            babl_type_from_id (BABL_DOUBLE));
-        }
-      else
-        {
-          babl_fatal ("neither source nor destination model is RGBA (requirement might be temporary)");
-        }
+      src_format = babl_format_with_model_as_type (
+        BABL (babl->conversion.source),
+        babl_type_from_id (BABL_DOUBLE));
+      dst_format = babl_format_with_model_as_type (
+        BABL (babl->conversion.destination),
+        babl_type_from_id (BABL_DOUBLE));
+
+      if(allow_collision){
+        const Babl *fish = babl_conversion_find (src_format, dst_format);
+        if (fish)
+          return (void*)fish;
+      }
       babl_conversion_new (
         src_format,
         dst_format,
         "linear", linear,
         "data", user_data,
+        allow_collision?"allow-collision":NULL,
         NULL);
       babl->conversion.error = 0.0;
     }
@@ -257,8 +248,11 @@ _conversion_new (const char    *name,
 
 static char buf[512] = "";
 static int collisions = 0;
+
 static char *
-create_name (Babl *source, Babl *destination, int type)
+create_name (Babl *source, 
+             Babl *destination, 
+             int   type)
 {
   if (babl_extender ())
     {
@@ -283,17 +277,21 @@ create_name (Babl *source, Babl *destination, int type)
     }
   return buf;
 }
-const char *
-babl_conversion_create_name (Babl *source, Babl *destination, int type);
 
 const char *
-babl_conversion_create_name (Babl *source, Babl *destination, int type)
+babl_conversion_create_name (Babl *source, 
+                             Babl *destination, 
+                             int   type,
+                             int   allow_collision)
 {
   Babl *babl;
   char *name;
   int id = 0;
   collisions = 0;
   name = create_name (source, destination, type);
+
+  if (allow_collision == 0)
+  {
   babl = babl_db_exist (db, id, name);
   while (babl)
     {
@@ -304,6 +302,7 @@ babl_conversion_create_name (Babl *source, Babl *destination, int type)
       name = create_name (source, destination, type);
       babl = babl_db_exist (db, id, name);
     }
+  }
   return name;
 }
 
@@ -325,8 +324,8 @@ babl_conversion_new (const void *first_arg,
 
   Babl          *source;
   Babl          *destination;
-
   char          *name;
+  int            allow_collision = 0;
 
   va_start (varg, first_arg);
   source      = (Babl *) arg;
@@ -349,6 +348,10 @@ babl_conversion_new (const void *first_arg,
           user_data = va_arg (varg, void*);
         }
 
+      else if (!strcmp (arg, "allow-collision"))
+        {
+          allow_collision = 1;
+        }
       else if (!strcmp (arg, "linear"))
         {
           if (got_func++)
@@ -402,10 +405,10 @@ babl_conversion_new (const void *first_arg,
       type = BABL_CONVERSION_PLANAR;
     }
 
-  name = (void*) babl_conversion_create_name (source, destination, type);
+  name = (void*) babl_conversion_create_name (source, destination, type, allow_collision);
 
   babl = _conversion_new (name, id, source, destination, linear, plane, planar,
-                         user_data);
+                          user_data, allow_collision);
 
   /* Since there is not an already registered instance by the required
    * id/name, inserting newly created class into database.
@@ -493,10 +496,19 @@ babl_conversion_error (BablConversion *conversion)
   babl_process (fish_rgba_to_source,
                 test, source, test_pixels);
 
-  ticks_start = babl_ticks ();
-  babl_process (babl_fish_simple (conversion),
-                source, destination, test_pixels);
-  ticks_end = babl_ticks ();
+  if (BABL(conversion)->class_type == BABL_CONVERSION_LINEAR)
+  {
+    ticks_start = babl_ticks ();
+    babl_process (babl_fish_simple (conversion),
+                  source, destination, test_pixels);
+    ticks_end = babl_ticks ();
+  }
+  else
+  {
+    /* we could still measure it, but for the paths we only really consider
+     * the linear ones anyways */
+    ticks_end = 1000;
+  }
 
   babl_process (fish_reference,
                 source, ref_destination, test_pixels);
@@ -526,12 +538,14 @@ babl_conversion_error (BablConversion *conversion)
   return error;
 }
 
-const Babl *babl_conversion_get_source_space      (const Babl *conversion)
+const Babl *
+babl_conversion_get_source_space (const Babl *conversion)
 {
   return conversion->conversion.source->format.space;
 }
 
-const Babl *babl_conversion_get_destination_space (const Babl *conversion)
+const Babl *
+babl_conversion_get_destination_space (const Babl *conversion)
 {
   return conversion->conversion.destination->format.space;
 }

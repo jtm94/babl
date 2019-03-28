@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BASE_UTIL_H
@@ -24,11 +24,12 @@
 #include "pow-24.h"
 
 /* Alpha threshold used in the reference implementation for
- * un-pre-multiplication of color data:
+ * un-pre-multiplication of color data, deprecated in favor of the following
  *
  * 0.01 / (2^16 - 1)
  */
 #define BABL_ALPHA_THRESHOLD 0.000000152590219
+
 
 #define BABL_PLANAR_SANITY  \
   {                         \

@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -36,19 +36,19 @@ typedef struct BablLookup
 {
   BablLookupFunction function;
   void              *data;
-  int               shift;
-  uint32_t          positive_min, positive_max, negative_min, negative_max;
-  uint32_t          bitmask[babl_LOOKUP_MAX_ENTRIES/32];
-  int               entries;
-  float             table[];
+  int                shift;
+  uint32_t           positive_min, positive_max, negative_min, negative_max;
+  uint32_t           bitmask[babl_LOOKUP_MAX_ENTRIES/32];
+  int                entries;
+  float              table[];
 } BablLookup;
 
 
-static BablLookup *babl_lookup_new (BablLookupFunction  function,
-                                    void *              data,
-                                    float               start,
-                                    float               end,
-                                    float               precision);
+static BablLookup *babl_lookup_new (BablLookupFunction function,
+                                    void *             data,
+                                    float              start,
+                                    float              end,
+                                    float              precision);
 #if 0
 static void        babl_lookup_free      (BablLookup         *lookup);
 #endif
@@ -286,7 +286,8 @@ babl_lookup_free (BablLookup *lookup)
 #endif
 
 static void
-conv_rgbaF_linear_rgbAF_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbaF_linear_rgbAF_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -307,15 +308,15 @@ conv_rgbaF_linear_rgbAF_gamma (const Babl *conversion,unsigned char *src,
          *fdst++ = linear_to_gamma_2_2_lut (blue);
          *fdst++ = alpha;
        }
-       else if (alpha == 0.0)
-       {
-         *fdst++ = 0.0;
-         *fdst++ = 0.0;
-         *fdst++ = 0.0;
-         *fdst++ = 0.0;
-       }
        else
        {
+         if (alpha < BABL_ALPHA_FLOOR)
+         {
+           if (alpha >= 0.0f)
+             alpha = BABL_ALPHA_FLOOR;
+           else if (alpha >= -BABL_ALPHA_FLOOR)
+             alpha = -BABL_ALPHA_FLOOR;
+         }
          *fdst++ = linear_to_gamma_2_2_lut (red)   * alpha;
          *fdst++ = linear_to_gamma_2_2_lut (green) * alpha;
          *fdst++ = linear_to_gamma_2_2_lut (blue)  * alpha;
@@ -327,7 +328,8 @@ conv_rgbaF_linear_rgbAF_gamma (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_rgbaF_linear_rgba8_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbaF_linear_rgba8_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -363,7 +365,8 @@ conv_rgbaF_linear_rgba8_gamma (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_rgbaF_linear_rgbA8_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbaF_linear_rgbA8_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -386,11 +389,6 @@ conv_rgbaF_linear_rgbA8_gamma (const Babl *conversion,unsigned char *src,
          val = linear_to_gamma_2_2_lut (blue) * 0xff + 0.5f;
          *cdst++ = val >= 0xff ? 0xff : val <= 0 ? 0 : val;
          *cdst++ = 0xff;
-       }
-       else if (alpha <= 0.0)
-       {
-         *((uint32_t*)(cdst))=0;
-	     cdst+=4;
        }
        else
        {
@@ -471,11 +469,6 @@ conv_rgbaF_linear_rgbA8_gamma_cairo (const Babl *conversion,unsigned char *src,
         *cdst++ = val >= 0xff ? 0xff : val <= 0 ? 0 : val;
         *cdst++ = 0xff;
       }
-      else if (alpha <= 0.0)
-      {
-        *((uint32_t*)(cdst))=0;
-        cdst+=4;
-      }
       else
       {
         float balpha = alpha * 0xff;
@@ -491,7 +484,8 @@ conv_rgbaF_linear_rgbA8_gamma_cairo (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_rgbAF_linear_rgbAF_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbAF_linear_rgbAF_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -505,33 +499,28 @@ conv_rgbAF_linear_rgbAF_gamma (const Babl *conversion,unsigned char *src,
       float green = *fsrc++;
       float blue  = *fsrc++;
       float alpha = *fsrc++;
-       if (alpha < BABL_ALPHA_THRESHOLD)
-         {
-           *fdst++ = 0.0;
-           *fdst++ = 0.0;
-           *fdst++ = 0.0;
-           *fdst++ = 0.0;
-         }
-       else if (alpha >= 1.0)
-         {
-           *fdst++ = linear_to_gamma_2_2_lut (red);
-           *fdst++ = linear_to_gamma_2_2_lut (green);
-           *fdst++ = linear_to_gamma_2_2_lut (blue);
-           *fdst++ = *fsrc++;
-         }
-       else
-         {
-           float alpha_recip = 1.0 / alpha;
-           *fdst++ = linear_to_gamma_2_2_lut (red   * alpha_recip) * alpha;
-           *fdst++ = linear_to_gamma_2_2_lut (green * alpha_recip) * alpha;
-           *fdst++ = linear_to_gamma_2_2_lut (blue  * alpha_recip) * alpha;
-           *fdst++ = alpha;
-         }
+
+      if (alpha == 1.0)
+        {
+          *fdst++ = linear_to_gamma_2_2_lut (red);
+          *fdst++ = linear_to_gamma_2_2_lut (green);
+          *fdst++ = linear_to_gamma_2_2_lut (blue);
+          *fdst++ = *fsrc++;
+        }
+      else
+        {
+          float alpha_recip = 1.0 / alpha;
+          *fdst++ = linear_to_gamma_2_2_lut (red   * alpha_recip) * alpha;
+          *fdst++ = linear_to_gamma_2_2_lut (green * alpha_recip) * alpha;
+          *fdst++ = linear_to_gamma_2_2_lut (blue  * alpha_recip) * alpha;
+          *fdst++ = alpha;
+        }
      }
 }
 
 static void
-conv_rgbaF_linear_rgbaF_gamma (const Babl *conversion,unsigned char *src, 
+conv_rgbaF_linear_rgbaF_gamma (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -567,7 +556,8 @@ conv_rgbF_linear_rgbF_gamma (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_rgbaF_gamma_rgbaF_linear (const Babl *conversion,unsigned char *src, 
+conv_rgbaF_gamma_rgbaF_linear (const Babl    *conversion,
+                               unsigned char *src, 
                                unsigned char *dst, 
                                long           samples)
 {
@@ -585,7 +575,8 @@ conv_rgbaF_gamma_rgbaF_linear (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_rgbF_gamma_rgbF_linear (const Babl *conversion,unsigned char *src, 
+conv_rgbF_gamma_rgbF_linear (const Babl    *conversion,
+                             unsigned char *src, 
                              unsigned char *dst, 
                              long           samples)
 {

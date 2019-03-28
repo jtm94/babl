@@ -14,7 +14,7 @@ AC_PREREQ(2.54)
 
 m4_define([babl_major_version], [0])
 m4_define([babl_minor_version], [1])
-m4_define([babl_micro_version], [51])
+m4_define([babl_micro_version], [63])
 m4_define([babl_real_version],
           [babl_major_version.babl_minor_version.babl_micro_version])
 m4_define([babl_version], [babl_real_version])
@@ -161,8 +161,8 @@ CFLAGS="$CFLAGS $extra_warnings"
 BABL_DETECT_CFLAGS(extra_warnings, '-Wold-style-definition')
 CFLAGS="$CFLAGS $extra_warnings"
 
-BABL_DETECT_CFLAGS(extra_warnings, '-Ofast' )
-CFLAGS="$CFLAGS $extra_warnings"
+#BABL_DETECT_CFLAGS(extra_warnings, '-Ofast' )
+#CFLAGS="$CFLAGS $extra_warnings"
 
 fi
 
@@ -214,6 +214,24 @@ case "$target_or_host" in
   *)
     ;;
 esac
+
+################
+# Check for lcms
+################
+
+AC_ARG_WITH(lcms, [  --without-lcms          build without lcms support])
+
+have_lcms="no (lcms support disabled)"
+if test "x$with_lcms" != xno; then
+  have_lcms=yes
+  PKG_CHECK_MODULES(LCMS, lcms2 >= lcms_required_version,
+    AC_DEFINE(HAVE_LCMS, 1, [Define to 1 if lcms is available])
+    LCMS='lcms$(EXEEXT)',
+    have_lcms="no (lcms not found or unusable)")
+fi
+
+AC_SUBST(LCMS)
+AM_CONDITIONAL(HAVE_LCMS, test "x$have_lcms" = xyes)
 
 
 ############################

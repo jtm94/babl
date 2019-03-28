@@ -13,10 +13,10 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "../config.h"
 #include "babl-internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,9 +32,15 @@ typedef struct ICC {
   int   psize;
 } ICC;
 
-ICC *icc_state_new (char *data, int length, int tags);
+ICC *
+icc_state_new (char *data, 
+               int   length, 
+               int   tags);
 
-ICC *icc_state_new (char *data, int length, int tags)
+ICC *
+icc_state_new (char *data, 
+               int   length, 
+               int   tags)
 {
   ICC *ret = babl_calloc (sizeof (ICC), 1);
   ret->data = data;
@@ -64,21 +70,29 @@ typedef struct {
 #define icc_write(type, offset, value)  write_##type(state,offset,value)
 #define icc_read(type, offset)          read_##type(state,offset)
 
-static void write_u8 (ICC *state, int offset, uint8_t value)
+static void 
+write_u8 (ICC    *state, 
+          int     offset, 
+          uint8_t value)
 {
   if (offset < 0 || offset >= state->length)
     return;
   *(uint8_t*) (&state->data[offset]) = value;
 }
 
-static void write_s8 (ICC *state, int offset, int8_t value)
+static void 
+write_s8 (ICC   *state, 
+          int    offset, 
+          int8_t value)
 {
   if (offset < 0 || offset >= state->length)
     return;
   *(int8_t*) (&state->data[offset]) = value;
 }
 
-static int read_u8 (ICC *state, int offset)
+static int 
+read_u8 (ICC *state, 
+         int  offset)
 {
 /* all reading functions take both the char *pointer and the length of the
  * buffer, and all reads thus gets protected by this condition.
@@ -89,7 +103,9 @@ static int read_u8 (ICC *state, int offset)
   return *(uint8_t*) (&state->data[offset]);
 }
 
-static int read_s8 (ICC *state, int offset)
+static int 
+read_s8 (ICC *state, 
+         int  offset)
 {
   if (offset < 0 || offset > state->length)
     return 0;
@@ -97,57 +113,78 @@ static int read_s8 (ICC *state, int offset)
   return *(int8_t*) (&state->data[offset]);
 }
 
-static void write_s16 (ICC *state, int offset, int16_t value)
+static void 
+write_s16 (ICC    *state, 
+           int     offset, 
+           int16_t value)
 {
   write_s8 (state, offset + 0, value >> 8);
   write_u8 (state, offset + 1, value & 0xff);
 }
 
-static int16_t read_s16 (ICC *state, int offset)
+static int16_t 
+read_s16 (ICC *state, 
+          int  offset)
 {
   return icc_read (u8, offset + 1) +
          (read_s8 (state, offset + 0) << 8); //XXX: transform to icc_read macro
 }
 
-static uint16_t read_u16 (ICC *state, int offset)
+static 
+uint16_t read_u16 (ICC *state, 
+                   int  offset)
 {
   return icc_read (u8, offset + 1) +
          (icc_read (u8, offset + 0) << 8);
 }
 
-static void write_u16 (ICC *state, int offset, uint16_t value)
+static void 
+write_u16 (ICC     *state, 
+           int      offset, 
+           uint16_t value)
 {
   write_u8 (state, offset + 0, value >> 8);
   write_u8 (state, offset + 1, value & 0xff);
 }
 
-static u8f8_t read_u8f8_ (ICC *state, int offset)
+static u8f8_t 
+read_u8f8_ (ICC *state, 
+            int  offset)
 {
   u8f8_t ret ={icc_read (u8, offset),
                icc_read (u8, offset + 1)};
   return ret;
 }
 
-static s15f16_t read_s15f16_ (ICC *state, int offset)
+static s15f16_t 
+read_s15f16_ (ICC *state, 
+              int  offset)
 {
   s15f16_t ret ={icc_read (s16, offset),
                  icc_read (u16, offset + 2)};
   return ret;
 }
 
-static void write_u8f8_ (ICC *state, int offset, u8f8_t val)
+static void 
+write_u8f8_ (ICC   *state, 
+             int    offset, 
+             u8f8_t val)
 {
   icc_write (u8, offset,     val.integer),
   icc_write (u8, offset + 1, val.fraction);
 }
 
-static void write_s15f16_ (ICC *state, int offset, s15f16_t val)
+static void 
+write_s15f16_ (ICC     *state, 
+               int      offset, 
+               s15f16_t val)
 {
   icc_write (s16, offset, val.integer),
   icc_write (u16, offset + 2, val.fraction);
 }
 
-static s15f16_t d_to_s15f16 (double value)
+static s15f16_t 
+d_to_s15f16 (double value)
 {
   s15f16_t ret;
   ret.integer = floor (value);
@@ -155,7 +192,8 @@ static s15f16_t d_to_s15f16 (double value)
   return ret;
 }
 
-static u8f8_t d_to_u8f8 (double value)
+static u8f8_t 
+d_to_u8f8 (double value)
 {
   u8f8_t ret;
   ret.integer = floor (value);
@@ -163,39 +201,52 @@ static u8f8_t d_to_u8f8 (double value)
   return ret;
 }
 
-static double s15f16_to_d (s15f16_t fix)
+static double 
+s15f16_to_d (s15f16_t fix)
 {
   return fix.integer + fix.fraction / 65536.0;
 }
 
-static double u8f8_to_d (u8f8_t fix)
+static double 
+u8f8_to_d (u8f8_t fix)
 {
   return fix.integer + fix.fraction / 256.0;
 }
 
-static void write_s15f16 (ICC *state, int offset, double value)
+static void 
+write_s15f16 (ICC   *state,
+              int    offset,
+              double value)
 {
    write_s15f16_ (state, offset, d_to_s15f16 (value));
 }
 
-static void write_u8f8 (ICC *state, int offset, double value)
+static void 
+write_u8f8 (ICC   *state,
+            int    offset,
+            double value)
 {
   write_u8f8_ (state, offset, d_to_u8f8 (value));
 }
 
 
-static double read_s15f16 (ICC *state, int offset)
+static double 
+read_s15f16 (ICC *state, 
+             int  offset)
 {
   return s15f16_to_d (read_s15f16_ (state, offset));
 }
 
-static double read_u8f8 (ICC *state, int offset)
+static double 
+read_u8f8 (ICC *state, 
+           int  offset)
 {
   return u8f8_to_d (read_u8f8_ (state, offset));
 }
 
 #if 0
-static inline void print_u8f8 (u8f8_t fix)
+static inline void 
+print_u8f8 (u8f8_t fix)
 {
   int i;
   uint32_t foo;
@@ -209,7 +260,8 @@ static inline void print_u8f8 (u8f8_t fix)
   }
 }
 
-static inline void print_s15f16 (s15f16_t fix)
+static inline void 
+print_s15f16 (s15f16_t fix)
 {
   int i;
   uint32_t foo;
@@ -240,7 +292,10 @@ static inline void print_s15f16 (s15f16_t fix)
 }
 #endif
 
-static void write_u32 (ICC *state, int offset, uint32_t value)
+static void 
+write_u32 (ICC     *state, 
+           int      offset, 
+           uint32_t value)
 {
   int i;
   for (i = 0; i < 4; i ++)
@@ -252,7 +307,9 @@ static void write_u32 (ICC *state, int offset, uint32_t value)
   }
 }
 
-static uint32_t read_u32 (ICC *state, int offset)
+static uint32_t 
+read_u32 (ICC *state, 
+          int  offset)
 {
   return icc_read (u8, offset + 3) +
          (icc_read (u8, offset + 2) << 8) +
@@ -260,7 +317,9 @@ static uint32_t read_u32 (ICC *state, int offset)
          (icc_read (u8, offset + 0) << 24);
 }
 
-static sign_t read_sign (ICC *state, int offset)
+static sign_t 
+read_sign (ICC *state, 
+           int  offset)
 {
   sign_t ret;
   ret.str[0]=icc_read (u8, offset);
@@ -271,7 +330,10 @@ static sign_t read_sign (ICC *state, int offset)
   return ret;
 }
 
-static void write_sign (ICC *state, int offset, const char *sign)
+static void 
+write_sign (ICC        *state, 
+            int         offset, 
+            const char *sign)
 {
   int i;
   for (i = 0; i < 4; i ++)
@@ -280,8 +342,11 @@ static void write_sign (ICC *state, int offset, const char *sign)
 
 /* looks up offset and length for a specific icc tag
  */
-static int icc_tag (ICC *state,
-                    const char *tag, int *offset, int *el_length)
+static int 
+icc_tag (ICC        *state,
+         const char *tag, 
+         int        *offset, 
+         int        *el_length)
 {
   int tag_count = icc_read (u32, TAG_COUNT_OFF);
   int t;
@@ -301,8 +366,10 @@ static int icc_tag (ICC *state,
   return 0;
 }
 
-static const Babl *babl_trc_from_icc (ICC  *state, int offset,
-                                      const char **error)
+static const Babl *
+babl_trc_from_icc (ICC         *state, 
+                   int          offset,                                      
+                   const char **error)
 {
   {
     int count = icc_read (u32, offset + 8);
@@ -390,9 +457,15 @@ static const Babl *babl_trc_from_icc (ICC  *state, int offset,
   return NULL;
 }
 
-static void icc_allocate_tag (ICC *state, const char *tag, int size)
+static void 
+icc_allocate_tag (ICC        *state, 
+                  const char *tag, 
+                  int         size)
 {
-    state->no+=((4-state->o)%4);state->o = state->no;state->psize = size;
+    while (state->no % 4 != 0)
+      state->no++;
+
+    state->o = state->no;state->psize = size;
     icc_write (sign, 128 + 4 + 4 * state->headpos++, tag);
     icc_write (u32,  128 + 4 + 4 * state->headpos++, state->o);
     icc_write (u32,  128 + 4 + 4 * state->headpos++, size);
@@ -400,7 +473,9 @@ static void icc_allocate_tag (ICC *state, const char *tag, int size)
     state->no+=size;
 }
 
-static void icc_duplicate_tag(ICC *state, const char *tag)
+static void 
+icc_duplicate_tag(ICC        *state, 
+                  const char *tag)
 {
     icc_write (sign, 128 + 4 + 4 * state->headpos++, tag);
     icc_write (u32,  128 + 4 + 4 * state->headpos++, state->p);
@@ -411,14 +486,15 @@ static void icc_duplicate_tag(ICC *state, const char *tag)
 static const uint16_t lut_srgb_26[]={0,202,455,864,1423,2154,3060,4156,5454,6960,8689,10637,12821,15247,17920,20855,24042,27501,31233,35247,39549,44132,49018,54208,59695,65535};
 
 
-void write_trc (ICC *state,
-                const char *name,
+void write_trc (ICC           *state,
+                const char    *name,
                 const BablTRC *trc,
-                BablICCFlags flags);
-void write_trc (ICC *state,
-                const char *name,
+                BablICCFlags   flags);
+                
+void write_trc (ICC           *state,
+                const char    *name,
                 const BablTRC *trc,
-                BablICCFlags flags)
+                BablICCFlags   flags)
 {
 switch (trc->type)
 {
@@ -482,16 +558,18 @@ switch (trc->type)
 }
 }
 
-static void symmetry_test (ICC *state);
+static void 
+symmetry_test (ICC *state);
 
-const char *babl_space_to_icc (const Babl  *babl,
-                               const char  *description,
-                               const char  *copyright,
-                               BablICCFlags flags,
-                               int         *ret_length)
+char *
+babl_space_to_icc (const Babl  *babl,
+                         const char  *description,
+                         const char  *copyright,
+                         BablICCFlags flags,
+                         int         *ret_length)
 {
   const BablSpace *space = &babl->space;
-  static char icc[65536];
+  char icc[65536];
   int length=65535;
   ICC *state = icc_state_new (icc, length, 10);
 
@@ -606,7 +684,27 @@ const char *babl_space_to_icc (const Babl  *babl,
     *ret_length = length;
 
   babl_free (state);
-  return icc;
+  {
+    char *ret = malloc (length);
+    memcpy (ret, icc, length);
+    return ret;
+  }
+}
+
+const char *
+babl_space_get_icc (const Babl *babl, 
+                    int        *length)
+{
+  if (!babl->space.icc_profile)
+  {
+    /* overriding constness of babl */
+    Babl *babl_noconst = (void*) babl;
+    babl_noconst->space.icc_profile = babl_space_to_icc (babl,
+                              "babl profile", NULL, 0,
+                              &babl_noconst->space.icc_length);
+  }
+  if (length) *length = babl->space.icc_length;
+  return babl->space.icc_profile;
 }
 
 
@@ -619,17 +717,19 @@ typedef enum {
   lenientConversion
 } ConversionFlags;
 
-static int ConvertUTF16toUTF8 (const UTF16** sourceStart,
-                               const UTF16* sourceEnd,
-                               UTF8** targetStart,
-                               UTF8* targetEnd,
-                               ConversionFlags flags);
+static int 
+ConvertUTF16toUTF8 (const UTF16   **sourceStart,
+                    const UTF16    *sourceEnd,
+                    UTF8          **targetStart,
+                    UTF8           *targetEnd,
+                    ConversionFlags flags);
 
-static char *icc_decode_mluc (ICC        *state,
-                              int         offset,
-                              int         element_length,
-                              const char *lang,
-                              const char *country)
+static char *
+icc_decode_mluc (ICC        *state,
+                 int         offset,
+                 int         element_length,
+                 const char *lang,
+                 const char *country)
 {
   int n_records   = icc_read (u32, offset + 8);
   int record_size = icc_read (u32, offset + 12);
@@ -677,7 +777,11 @@ static char *icc_decode_mluc (ICC        *state,
   return NULL;
 }
 
-static char *decode_string (ICC *state, const char *tag, const char *lang, const char *country)
+static char *
+decode_string (ICC        *state, 
+               const char *tag, 
+               const char *lang, 
+               const char *country)
 {
   int offset, element_size;
 
@@ -699,8 +803,12 @@ static char *decode_string (ICC *state, const char *tag, const char *lang, const
   return NULL;
 }
 
+#ifdef HAVE_LCMS
+static cmsHPROFILE sRGBProfile = 0;
+#endif
+
 const Babl *
-babl_icc_make_space (const char   *icc_data,
+babl_space_from_icc (const char   *icc_data,
                      int           icc_length,
                      BablIccIntent intent,
                      const char  **error)
@@ -713,9 +821,9 @@ babl_icc_make_space (const char   *icc_data,
   const Babl *trc_blue  = NULL;
   const char *int_err;
   Babl *ret = NULL;
+  int speed_over_accuracy = intent & BABL_ICC_INTENT_PERFORMANCE;
 
-  sign_t profile_class, color_space;
-
+  sign_t profile_class, color_space, pcs;
 
   if (!error) error = &int_err;
   *error = NULL;
@@ -724,29 +832,82 @@ babl_icc_make_space (const char   *icc_data,
   {
     *error = "icc profile length inconsistency";
   }
-#if 0
-  else if (icc_ver_major > 2)
+  else
   {
-    *error = "only ICC v2 profiles supported";
-  }
+    profile_class = icc_read (sign, 12);
+    color_space = icc_read (sign, 16);
+
+    if (!strcmp (color_space.str, "CMYK"))
+    {
+       ret = _babl_space_for_lcms (icc_data, icc_length);
+       if (ret->space.cmyk.is_cmyk)
+         return ret;
+       ret->space.cmyk.is_cmyk = 1;
+       ret->space.icc_length = icc_length;
+       ret->space.icc_profile = malloc (icc_length);
+       memcpy (ret->space.icc_profile, icc_data, icc_length);
+
+#ifdef HAVE_LCMS
+       if (sRGBProfile == 0)
+       {
+         const Babl *rgb = babl_space("scRGB"); /* should use a forced linear profile */
+         sRGBProfile = cmsOpenProfileFromMem(rgb->space.icc_profile, rgb->space.icc_length);
+       }
+
+       ret->space.cmyk.lcms_profile = cmsOpenProfileFromMem(ret->space.icc_profile, ret->space.icc_length);
+
+/* these are not defined by lcms2.h we hope that following the existing pattern of pixel-format definitions work */
+#ifndef TYPE_CMYKA_DBL
+#define TYPE_CMYKA_DBL      (FLOAT_SH(1)|COLORSPACE_SH(PT_CMYK)|EXTRA_SH(1)|CHANNELS_SH(4)|BYTES_SH(0))
 #endif
-  else
-  {
-  profile_class = icc_read (sign, 12);
-  if (strcmp (profile_class.str, "mntr"))
-    *error = "not a monitor-class profile";
-  else
-  {
-  color_space = icc_read (sign, 16);
-  if (strcmp (color_space.str, "RGB "))
-    *error = "not defining an RGB space";
-  }
+#ifndef TYPE_RGBA_DBL
+#define TYPE_RGBA_DBL      (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|EXTRA_SH(1)|CHANNELS_SH(3)|BYTES_SH(0))
+#endif
+
+       ret->space.cmyk.lcms_to_rgba = cmsCreateTransform(ret->space.cmyk.lcms_profile, TYPE_CMYKA_DBL,
+                                                    sRGBProfile, TYPE_RGBA_DBL,
+                                                    INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_BLACKPOINTCOMPENSATION);
+// INTENT_PERCEPTUAL,0);//intent & 7, 0);
+       ret->space.cmyk.lcms_from_rgba = cmsCreateTransform(sRGBProfile, TYPE_RGBA_DBL,
+                                                      ret->space.cmyk.lcms_profile, TYPE_CMYKA_DBL,
+                                                    INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_BLACKPOINTCOMPENSATION);
+                                                    //  INTENT_PERCEPTUAL,0);//intent & 7, 0);
+       cmsCloseProfile (ret->space.cmyk.lcms_profile); // XXX keep it open in case of CMYK to CMYK transforms needed?
+#endif
+       return ret;
+    }
+
+    if (strcmp (color_space.str, "RGB "))
+      *error = "not defining an RGB space";
+    else
+     {
+       if (strcmp (profile_class.str, "mntr"))
+         *error = "not a monitor-class profile";
+     }
   }
 
-  switch (intent)
+  if (!*error)
+  {
+    pcs = icc_read (sign, 20);
+    if (strcmp (pcs.str, "XYZ "))
+      *error = "PCS is not XYZ";
+  }
+
+  if (!*error)
+  switch (intent & 7) /* enum of intent is in lowest bits */
   {
     case BABL_ICC_INTENT_RELATIVE_COLORIMETRIC:
       /* that is what we do well */
+
+      if (!speed_over_accuracy)
+      {
+        if (icc_tag (state, "A2B0", NULL, NULL) &&
+            icc_tag (state, "B2A0", NULL, NULL))
+        {
+          *error = "use lcms, accuracy desired and cluts are present";
+        }
+      }
+
       break;
     case BABL_ICC_INTENT_PERCEPTUAL:
       /* if there is an A2B0 and B2A0 tags, we do not do what that
@@ -794,6 +955,7 @@ babl_icc_make_space (const char   *icc_data,
 
   if (*error)
   {
+
     babl_free (state);
     return NULL;
   }
@@ -827,6 +989,19 @@ babl_icc_make_space (const char   *icc_data,
      wY = icc_read (s15f16, offset + 8 + 4);
      wZ = icc_read (s15f16, offset + 8 + 4 * 2);
 
+      /* detect inconsistent Argyll cLUT + matrix profiles */
+      if (icc_tag (state, "A2B0", NULL, NULL) ||
+          icc_tag (state, "B2A0", NULL, NULL))
+      {
+        if (rz > rx)
+        {
+           *error = "Inconsistent ICC profile detected, profile contains both cLUTs and a matrix with swapped primaries, this likely means it is an intentionally inconsistent Argyll profile is in use; this profile is only capable of high accuracy rendering and does not permit acceleration for interactive previews.";
+           fprintf (stderr, "babl ICC warning: %s\n", *error);
+           babl_free (state);
+           return NULL;
+        }
+      }
+
      ret = (void*)babl_space_match_trc_matrix (trc_red, trc_green, trc_blue,
                                         rx, ry, rz, gx, gy, gz, bx, by, bz);
      if (ret)
@@ -844,6 +1019,9 @@ babl_icc_make_space (const char   *icc_data,
                 trc_red, trc_green, trc_blue);
 
        babl_free (state);
+       ret->space.icc_length = icc_length;
+       ret->space.icc_profile = malloc (icc_length);
+       memcpy (ret->space.icc_profile, icc_data, icc_length);
        return ret;
      }
   }
@@ -890,6 +1068,11 @@ babl_icc_make_space (const char   *icc_data,
                      green_x, green_y,
                      blue_x, blue_y,
                      trc_red, trc_green, trc_blue, 1);
+
+       ret->space.icc_length = icc_length;
+       ret->space.icc_profile = malloc (icc_length);
+       memcpy (ret->space.icc_profile, icc_data, icc_length);
+
        return ret;
      }
   }
@@ -897,6 +1080,16 @@ babl_icc_make_space (const char   *icc_data,
   *error = "didnt find RGB primaries";
   babl_free (state);
   return NULL;
+}
+
+/* NOTE: GIMP-2.10.0-4 releases depends on this symbol */
+const Babl *
+babl_icc_make_space (const char   *icc_data,
+                     int           icc_length,
+                     BablIccIntent intent,
+                     const char  **error)
+{
+  return babl_space_from_icc (icc_data, icc_length, intent, error);
 }
 
 static void symmetry_test (ICC *state)
@@ -922,11 +1115,12 @@ static void symmetry_test (ICC *state)
   assert (icc_read (u32, 8) == 4);
 }
 
-char *babl_icc_get_key (const char *icc_data,
-                        int         icc_length,
-                        const char *key,
-                        const char *language,
-                        const char *country)
+char *
+babl_icc_get_key (const char *icc_data,
+                  int         icc_length,
+                  const char *key,
+                  const char *language,
+                  const char *country)
 {
   char *ret = NULL;
   ICC *state = icc_state_new ((void*)icc_data, icc_length, 0);
@@ -1030,6 +1224,7 @@ typedef uint32_t        UTF32;  /* at least 32 bits */
 typedef unsigned short  UTF16;  /* at least 16 bits */
 typedef unsigned char   UTF8;   /* typically 8 bits */
 typedef unsigned char   Boolean; /* 0 or 1 */
+
 typedef enum {
   conversionOK,           /* conversion successful */
   sourceExhausted,        /* partial character in source, but hit end */
@@ -1049,8 +1244,12 @@ static const int halfShift  = 10; /* used for shifting by 10 bits */
 static const UTF32 halfBase = 0x0010000UL;
 static const UTF8 firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
 
-static int ConvertUTF16toUTF8 (const UTF16** sourceStart, const UTF16* sourceEnd,
-	UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags)
+static int 
+ConvertUTF16toUTF8 (const UTF16   **sourceStart, 
+                    const UTF16    *sourceEnd,
+	                 UTF8          **targetStart, 
+	                 UTF8           *targetEnd, 
+	                 ConversionFlags flags)
 {
     ConversionResult result = conversionOK;
     const UTF16* source = *sourceStart;

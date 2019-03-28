@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -56,7 +56,8 @@ model_new (const char     *name,
            const Babl     *space,
            int             id,
            int             components,
-           BablComponent **component)
+           BablComponent **component,
+           BablModelFlag   flags)
 {
   Babl *babl;
 
@@ -73,6 +74,7 @@ model_new (const char     *name,
   babl->model.space      = space;
   babl->model.data       = NULL;
   babl->model.model      = NULL;
+  babl->model.flags      = flags;
   strcpy (babl->instance.name, name);
   memcpy (babl->model.component, component, sizeof (BablComponent *) * components);
 
@@ -81,7 +83,10 @@ model_new (const char     *name,
 }
 
 static int
-is_model_duplicate (Babl *babl, const Babl *space, int components, BablComponent **component)
+is_model_duplicate (Babl           *babl, 
+                    const Babl     *space, 
+                    int             components, 
+                    BablComponent **component)
 {
   int   i;
 
@@ -114,6 +119,7 @@ babl_model_new (void *first_argument,
   char          *name          = NULL;
   const Babl    *space         = babl_space ("sRGB");
   BablComponent *component [BABL_MAX_COMPONENTS];
+  BablModelFlag  flags         = 0;
 
   va_start (varg, first_argument);
 
@@ -128,6 +134,46 @@ babl_model_new (void *first_argument,
       else if (!strcmp (arg, "name"))
         {
           assigned_name = va_arg (varg, char *);
+        }
+      else if (!strcmp (arg, "gray"))
+        {
+          flags |= BABL_MODEL_FLAG_GRAY;
+        }
+      else if (!strcmp (arg, "CIE"))
+        {
+          flags |= BABL_MODEL_FLAG_CIE;
+        }
+      else if (!strcmp (arg, "rgb"))
+        {
+          flags |= BABL_MODEL_FLAG_RGB;
+        }
+      else if (!strcmp (arg, "cmyk"))
+        {
+          flags |= BABL_MODEL_FLAG_CMYK;
+        }
+      else if (!strcmp (arg, "inverted"))
+        {
+          flags |= BABL_MODEL_FLAG_INVERTED;
+        }
+      else if (!strcmp (arg, "premultiplied"))
+        {
+          flags |= BABL_MODEL_FLAG_PREMULTIPLIED;
+        }
+      else if (!strcmp (arg, "alpha"))
+        {
+          flags |= BABL_MODEL_FLAG_ALPHA;
+        }
+      else if (!strcmp (arg, "linear"))
+        {
+          flags |= BABL_MODEL_FLAG_LINEAR;
+        }
+      else if (!strcmp (arg, "nonlinear"))
+        {
+          flags |= BABL_MODEL_FLAG_NONLINEAR;
+        }
+      else if (!strcmp (arg, "perceptual"))
+        {
+          flags |= BABL_MODEL_FLAG_PERCEPTUAL;
         }
 
       /* if we didn't point to a known string, we assume argument to be babl */
@@ -211,7 +257,7 @@ babl_model_new (void *first_argument,
 
   if (! babl)
     {
-      babl = model_new (name, space, id, components, component);
+      babl = model_new (name, space, id, components, component, flags);
       babl_db_insert (db, babl);
       construct_double_format (babl);
     }
@@ -231,7 +277,8 @@ babl_model_new (void *first_argument,
 
 #define TOLERANCE      0.001
 
-static const Babl *reference_format (void)
+static const Babl *
+reference_format (void)
 {
   static const Babl *self = NULL;
 
@@ -247,7 +294,8 @@ static const Babl *reference_format (void)
   return self;
 }
 
-static const Babl *construct_double_format (const Babl *model)
+static const Babl *
+construct_double_format (const Babl *model)
 {
   const void *argument[44 + 1];
   int   args = 0;
@@ -368,11 +416,26 @@ static const Babl *babl_remodels[512]={NULL,};
 int          babl_n_remodels = 0;
 
 const Babl *
-babl_remodel_with_space (const Babl *model, const Babl *space)
+babl_remodel_with_space (const Babl *model, 
+                         const Babl *space)
 {
   Babl *ret;
   int i;
   assert (BABL_IS_BABL (model));
+
+  if (!space) space = babl_space ("sRGB");
+  if (space->class_type == BABL_FORMAT)
+  {
+    space = space->format.space;
+  }
+  else if (space->class_type == BABL_MODEL)
+  {
+    space = space->model.space;
+  }
+  else if (space->class_type != BABL_SPACE)
+  {
+    return NULL;
+  }
 
   if (model->model.space == space)
     return (void*)model;
@@ -401,9 +464,23 @@ babl_remodel_with_space (const Babl *model, const Babl *space)
 }
 
 const Babl *
-babl_model_with_space (const char *name, const Babl *space)
+babl_model_with_space (const char *name, 
+                       const Babl *space)
 {
   return babl_remodel_with_space (babl_model (name), space);
 }
 
+BablModelFlag 
+babl_get_model_flags (const Babl *babl)
+{
+  if (!babl) return 0;
+  switch (babl->class_type)
+  {
+    case BABL_MODEL:
+      return babl->model.flags;
+    case BABL_FORMAT:
+      return babl->format.model->flags;
+  }
+  return 0;
+}
 

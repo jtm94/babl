@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -50,9 +50,9 @@ babl_base_destroy (void)
 static void
 types (void)
 {
+  babl_base_type_float ();
   babl_base_type_u15 ();
   babl_base_type_half ();
-  babl_base_type_float ();
   babl_base_type_u8 ();
   babl_base_type_u16 ();
   babl_base_type_u32 ();
@@ -69,6 +69,7 @@ models (void)
   babl_hmpf_on_name_lookups--;
   babl_base_model_rgb ();
   babl_base_model_gray ();
+  babl_base_model_cmyk ();
   babl_hmpf_on_name_lookups++;
   babl_base_model_ycbcr ();
 }

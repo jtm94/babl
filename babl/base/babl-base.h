@@ -13,11 +13,12 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BABL_BASE_H
 #define _BABL_BASE_H
+
 
 void babl_base_init (void);
 void babl_base_destroy (void);
@@ -32,6 +33,7 @@ void babl_base_type_u32    (void);
 
 void babl_base_model_pal   (void);
 void babl_base_model_rgb   (void);
+void babl_base_model_cmyk  (void);
 void babl_base_model_gray  (void);
 void babl_base_model_ycbcr (void);
 

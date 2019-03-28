@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #define BABL_DYNAMIC_EXTENSIONS
@@ -114,7 +114,8 @@ babl_extension_base (void)
   return babl;
 }
 
-void babl_extension_deinit (void)
+void 
+babl_extension_deinit (void)
 {
   babl_free (babl_quiet);
   babl_quiet = NULL;
@@ -150,7 +151,11 @@ void babl_extension_deinit (void)
 #define dlopen(path, flags)    shl_load (path, flags, 0L)
 #define dlclose(handle)                shl_unload (handle)
 #define dlerror()              strerror (errno)
-static void *dlsym (HLIB handle, const char *name) {
+
+static void *
+dlsym (HLIB        handle, 
+       const char *name) 
+{
   void *address = 0;
   shl_findsym(&handle, name, TYPE_UNDEFINED, &address);
   return address;

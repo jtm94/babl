@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BABL_INTERNAL_H
@@ -29,6 +29,7 @@
 
 #define BABL_MAX_COMPONENTS       32
 #define BABL_CONVERSIONS          5
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -241,6 +242,7 @@ babl_fatal (const char *format, ...)
 extern int   babl_hmpf_on_name_lookups;
 extern int   babl_in_fish_path;
 extern BablMutex *babl_format_mutex;
+extern BablMutex *babl_reference_mutex;
 
 #define BABL_DEBUG_MEM 0
 #if BABL_DEBUG_MEM
@@ -337,8 +339,6 @@ static inline double babl_parse_double (const char *str)
 
 const Babl *
 babl_remodel_with_space (const Babl *model, const Babl *space);
-const Babl *
-babl_model_with_space (const char *name, const Babl *space);
 Babl *
 _conversion_new (const char    *name,
                  int            id,
@@ -347,7 +347,8 @@ _conversion_new (const char    *name,
                  BablFuncLinear linear,
                  BablFuncPlane  plane,
                  BablFuncPlanar planar,
-                 void          *user_data);
+                 void          *user_data,
+                 int            allow_collision);
 
 double _babl_legal_error (void);
 void babl_init_db (void);
@@ -373,7 +374,9 @@ Babl * format_new_from_format_with_space (const Babl *format, const Babl *space)
 int babl_list_destroy (void *data);
 
 const char *
-babl_conversion_create_name (Babl *source, Babl *destination, int is_reference);
+babl_conversion_create_name (Babl *source, Babl *destination, int type,
+                             int allow_collision);
+
 void _babl_space_add_universal_rgb (const Babl *space);
 const Babl *
 babl_trc_formula_srgb (double gamma, double a, double b, double c, double d);
@@ -386,84 +389,15 @@ const Babl *babl_space_match_trc_matrix (const Babl *trc_red,
                                          float gx, float gy, float gz,
                                          float bx, float by, float bz);
 
-/**
- * babl_space_from_chromaticities:
- *
- * Creates a new babl-space/ RGB matrix color space definition with the
- * specified CIE xy(Y) values for white point: wx, wy and primary
- * chromaticities: rx,ry,gx,gy,bx,by and TRCs to be used. After registering a
- * new babl-space it can be used with babl_space() passing its name;
- *
- * Internally this does the math to derive the RGBXYZ matrix as used in an ICC
- * profile.
- */
-const Babl * babl_space_from_chromaticities (const char *name,
-                                             double wx, double wy,
-                                             double rx, double ry,
-                                             double gx, double gy,
-                                             double bx, double by,
-                                             const Babl *trc_red,
-                                             const Babl *trc_green,
-                                             const Babl *trc_blue,
-                                             int equalize_matrix);
 
-/**
- * babl_space_from_rgbxyz_matrix:
- *
- * Creates a new RGB matrix color space definition using a precomputed D50
- * adapted 3x3 matrix and associated CIE XYZ whitepoint, as possibly read from
- * an ICC profile.
- */
-const Babl *
-babl_space_from_rgbxyz_matrix (const char *name,
-                               double wx, double wy, double wz,
-                               double rx, double gx, double bx,
-                               double ry, double gy, double by,
-                               double rz, double gz, double bz,
-                               const Babl *trc_red,
-                               const Babl *trc_green,
-                               const Babl *trc_blue);
 
-/**
- * babl_trc_gamma:
- *
- * Creates a Babl TRC for a specific gamma value, it will be given
- * a name that is a short string representation of the value.
- */
-const Babl * babl_trc_gamma (double gamma);
-
-/**
- * babl_trc:
- *
- * Look up a TRC by name, "sRGB" "1.0" "linear" and "2.2" are recognized
- * strings in a stock babl configuration.
- */
-const Babl * babl_trc       (const char *name);
 
 int _babl_file_get_contents (const char  *path,
                              char       **contents,
                              long        *length,
                              void        *error);
 
-typedef enum {
-  BABL_ICC_DEFAULTS = 0,
-  BABL_ICC_COMPACT_TRC_LUT = 1,
-} BablICCFlags;
 
-/* babl_space_to_icc:
- *
- * Creates an ICCv2 RGB matrix profile for a babl space. The profiles strive to
- * be as small and compact as possible, TRCs are stored as 1024 entry LUT(s).
- *
- * you should make a copy of the profile before making another call to this
- * function.
- */
-
-const char *babl_space_to_icc (const Babl  *space,
-                               const char  *description,
-                               const char  *copyright,
-                               BablICCFlags flags,
-                               int         *icc_length);
 
 /* babl_space_get_rgbtoxyz:
 
@@ -498,7 +432,31 @@ babl_conversion_process (const Babl *babl,
   conversion->dispatch (babl, source, destination, n, conversion->data);
 }
 
+void _babl_fish_missing_fast_path_warning (const Babl *source,
+                                           const Babl *destination);
 void _babl_fish_rig_dispatch (Babl *babl);
 void _babl_fish_prepare_bpp (Babl *babl);
+
+
+/* babl_space_to_icc:
+ *
+ * Creates an ICCv2 RGB matrix profile for a babl space. The profiles strive to
+ * be as small and compact as possible, TRCs are stored as 1024 entry LUT(s).
+ *
+ * the result is allocated with malloc and you should free it when done.
+ */
+
+typedef enum {
+  BABL_ICC_DEFAULTS = 0,
+  BABL_ICC_COMPACT_TRC_LUT = 1,
+} BablICCFlags;
+
+char *babl_space_to_icc (const Babl  *space,
+                         const char  *description,
+                         const char  *copyright,
+                         BablICCFlags flags,
+                         int         *icc_length);
+Babl *
+_babl_space_for_lcms (const char *icc_data, int icc_length); // XXX pass profile for dedup?
 
 #endif

@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -43,7 +43,8 @@ conv_float_u8_two_table_map (float value)
 }
 
 static void
-conv_rgbafloat_linear_cairo24_le (const Babl *conversion,unsigned char *src_char,
+conv_rgbafloat_linear_cairo24_le (const Babl    *conversion,
+                                  unsigned char *src_char,
                                   unsigned char *dst,
                                   long           samples)
 {
@@ -52,23 +53,17 @@ conv_rgbafloat_linear_cairo24_le (const Babl *conversion,unsigned char *src_char
 
   while (n--)
     {
-      if (src[3] < BABL_ALPHA_THRESHOLD)
-        {
-          *(int *)dst = 0;
-        }
-      else
-        {
-          dst[0] = conv_float_u8_two_table_map (src[2]);
-          dst[1] = conv_float_u8_two_table_map (src[1]);
-          dst[2] = conv_float_u8_two_table_map (src[0]);
-        }
+      dst[0] = conv_float_u8_two_table_map (src[2]);
+      dst[1] = conv_float_u8_two_table_map (src[1]);
+      dst[2] = conv_float_u8_two_table_map (src[0]);
       src += 4;
       dst += 4;
     }
 }
 
 static void
-conv_rgbfloat_linear_cairo24_le (const Babl *conversion,unsigned char *src_char,
+conv_rgbfloat_linear_cairo24_le (const Babl    *conversion,
+                                 unsigned char *src_char,
                                  unsigned char *dst,
                                  long           samples)
 {
@@ -87,7 +82,8 @@ conv_rgbfloat_linear_cairo24_le (const Babl *conversion,unsigned char *src_char,
 }
 
 static void
-conv_rgbafloat_linear_rgbu8_gamma (const Babl *conversion,unsigned char *src_char,
+conv_rgbafloat_linear_rgbu8_gamma (const Babl    *conversion,
+                                   unsigned char *src_char,
                                    unsigned char *dst,
                                    long           samples)
 {
@@ -96,7 +92,7 @@ conv_rgbafloat_linear_rgbu8_gamma (const Babl *conversion,unsigned char *src_cha
 
   while (n--)
     {
-      if (src[3] < BABL_ALPHA_THRESHOLD)
+      if (src[3] <= BABL_ALPHA_FLOOR)
         {
           dst[0] = 0;
           dst[1] = 0;
@@ -115,7 +111,8 @@ conv_rgbafloat_linear_rgbu8_gamma (const Babl *conversion,unsigned char *src_cha
 
 
 static void
-conv_rgbafloat_linear_rgbau8_gamma (const Babl *conversion,unsigned char *src_char,
+conv_rgbafloat_linear_rgbau8_gamma (const Babl    *conversion,
+                                    unsigned char *src_char,
                                     unsigned char *dst,
                                     long           samples)
 {
@@ -124,27 +121,18 @@ conv_rgbafloat_linear_rgbau8_gamma (const Babl *conversion,unsigned char *src_ch
 
   while (n--)
     {
-      if (src[3] <=0)
-        {
-          dst[0] = 0;
-          dst[1] = 0;
-          dst[2] = 0;
-          dst[3] = 0;
-        }
-      else
-        {
-          dst[0] = conv_float_u8_two_table_map (src[0]);
-          dst[1] = conv_float_u8_two_table_map (src[1]);
-          dst[2] = conv_float_u8_two_table_map (src[2]);
-          dst[3] = src[3] * 0xff + 0.5;
-        }
+      dst[0] = conv_float_u8_two_table_map (src[0]);
+      dst[1] = conv_float_u8_two_table_map (src[1]);
+      dst[2] = conv_float_u8_two_table_map (src[2]);
+      dst[3] = src[3] * 0xff + 0.5;
       src += 4;
       dst += 4;
     }
 }
 
 static void
-conv_rgbfloat_linear_rgbu8_gamma (const Babl *conversion,unsigned char *src_char,
+conv_rgbfloat_linear_rgbu8_gamma (const Babl    *conversion,
+                                  unsigned char *src_char,
                                   unsigned char *dst,
                                   long           samples)
 {
@@ -163,7 +151,8 @@ conv_rgbfloat_linear_rgbu8_gamma (const Babl *conversion,unsigned char *src_char
 }
 
 static void
-conv_yfloat_linear_yu8_gamma (const Babl *conversion,unsigned char *src_char,
+conv_yfloat_linear_yu8_gamma (const Babl    *conversion,
+                              unsigned char *src_char,
                               unsigned char *dst,
                               long           samples)
 {
@@ -177,7 +166,8 @@ conv_yfloat_linear_yu8_gamma (const Babl *conversion,unsigned char *src_char,
 }
 
 static void
-conv_yafloat_linear_yau8_gamma (const Babl *conversion,unsigned char *src_char,
+conv_yafloat_linear_yau8_gamma (const Babl    *conversion,
+                                unsigned char *src_char,
                                 unsigned char *dst,
                                 long           samples)
 {
@@ -202,6 +192,8 @@ init (void)
   int   testint  = 23;
   char *testchar = (char*) &testint;
   int   littleendian = (testchar[0] == 23);
+
+  return 0; // temporarily disable, it is interfering with space invasion
 
   if (littleendian)
     {

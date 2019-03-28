@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -26,7 +26,8 @@
 #include "extensions/util.h"
 
 static void
-conv_rgbu16_rgbau16 (const Babl *conversion,unsigned char *src, 
+conv_rgbu16_rgbau16 (const Babl    *conversion,
+                     unsigned char *src, 
                      unsigned char *dst, 
                      long           samples)
 
@@ -46,7 +47,8 @@ conv_rgbu16_rgbau16 (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_yu16_yau16 (const Babl *conversion,unsigned char *src, 
+conv_yu16_yau16 (const Babl    *conversion,
+                 unsigned char *src, 
                  unsigned char *dst, 
                  long           samples)
 
@@ -76,8 +78,22 @@ init (void)
     NULL);
 
   babl_conversion_new (
+    babl_format ("R~G~B~ u16"),
+    babl_format ("R~G~B~A u16"),
+    "linear",
+    conv_rgbu16_rgbau16,
+    NULL);
+
+  babl_conversion_new (
     babl_format ("Y' u16"),
     babl_format ("Y'A u16"),
+    "linear",
+    conv_yu16_yau16,
+    NULL);
+
+  babl_conversion_new (
+    babl_format ("Y~ u16"),
+    babl_format ("Y~A u16"),
     "linear",
     conv_yu16_yau16,
     NULL);

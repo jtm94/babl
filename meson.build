@@ -1,6 +1,6 @@
 project('babl', 'c',
   license: 'LGPL3+',
-  version: '0.1.51',
+  version: '0.1.63',
   meson_version: '>=0.40.0',
   default_options: [
     'libdir=lib',
@@ -8,7 +8,7 @@ project('babl', 'c',
     'localstatedir=/var',
     'sharedstatedir=/var/lib'
   ],
-  # http://bugzilla.gnome.org/enter_bug.cgi?product=GEGL
+  # https://gitlab.gnome.org/GNOME/babl/issues/
 )
 
 # Making releases on the stable branch:
@@ -285,6 +285,17 @@ endif
 ################################################################################
 # Dependencies
 
+# LCMS
+with_lcms = get_option('with-lcms')
+if with_lcms
+  lcms = cc.find_library('lcms2', required : true)
+  if lcms.found()
+    conf.set('HAVE_LCMS', 1, description: 'Define to 1 if liblcms2 is available')
+  endif
+else
+  lcms = dependency('', required : false)
+endif
+
 math = cc.find_library('m',   required: false)
 thread = dependency('threads',  required: false)
 if platform_android
@@ -336,17 +347,10 @@ pkgconfig.generate(filebase: 'babl',
   ],
 )
 
-configure_file(
-  output: 'config.h',
-  configuration: conf
-)
-
-
 ################################################################################
 # Subdirs
 
 rootInclude = include_directories('.')
-version_script = join_paths(meson.current_source_dir(), 'babl.map')
 
 subdir('babl')
 subdir('extensions')

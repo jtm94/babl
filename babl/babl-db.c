@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 /* Reimplementation of database code using redundant hash tables
@@ -28,7 +28,59 @@
 #include "babl-internal.h"
 
 static int
-db_find_by_name (Babl *item, void *data)
+_babl_hash_by_str (BablHashTable *htab,
+                   const char    *str)
+{
+  int   hash = 0;
+
+  while (*str)
+  {
+    hash += *str++;
+    hash += (hash << 10);
+    hash ^= (hash >> 6);
+  }
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+
+  return (hash & htab->mask);
+}
+
+int
+babl_hash_by_str (BablHashTable *htab,
+                  const char    *str)
+{
+  return _babl_hash_by_str (htab, str);
+}
+
+
+static int
+_babl_hash_by_int (BablHashTable *htab,
+                   int           id)
+{
+  int   hash = 0;
+  hash +=  id & 0xFF;
+  hash += (hash << 10);
+  hash ^= (hash >> 6);
+  id >>= 8;
+  hash +=  id & 0xFF;
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+
+  return (hash & htab->mask);
+}
+
+int
+babl_hash_by_int (BablHashTable *htab,
+                  int           id)
+{
+ return _babl_hash_by_int (htab, id);
+}
+
+static int
+db_find_by_name (Babl *item, 
+                 void *data)
 {
   if (!strcmp (item->instance.name, (char *) data))
     return 1;
@@ -36,7 +88,8 @@ db_find_by_name (Babl *item, void *data)
 }
 
 static int
-db_find_by_id (Babl *item, void *data)
+db_find_by_id (Babl *item, 
+               void *data)
 {
   if (item->instance.id == *((int *) data))
     return 1;
@@ -44,15 +97,17 @@ db_find_by_id (Babl *item, void *data)
 }
 
 static int
-db_hash_by_name (BablHashTable *htab, Babl *item)
+db_hash_by_name (BablHashTable *htab, 
+                 Babl          *item)
 {
-  return babl_hash_by_str (htab, item->instance.name);
+  return _babl_hash_by_str (htab, item->instance.name);
 }
 
 static int
-db_hash_by_id (BablHashTable *htab, Babl *item)
+db_hash_by_id (BablHashTable *htab, 
+               Babl          *item)
 {
-  return babl_hash_by_int (htab, item->instance.id);
+  return _babl_hash_by_int (htab, item->instance.id);
 }
 
 static int
@@ -96,7 +151,7 @@ Babl *
 babl_db_find (BablDb     *db,
               const char *name)
 {
-  return babl_hash_table_find (db->name_hash, babl_hash_by_str (db->name_hash, name),
+  return babl_hash_table_find (db->name_hash, _babl_hash_by_str (db->name_hash, name),
                               NULL, (void *) name);
 }
 
@@ -139,9 +194,9 @@ babl_db_exist (BablDb     *db,
 {
   Babl *ret;
   if (id)
-    ret = babl_hash_table_find (db->id_hash, babl_hash_by_int (db->id_hash, id), NULL, &id);
-  else 
-    ret = babl_hash_table_find (db->name_hash, babl_hash_by_str (db->name_hash, name), NULL, (void *) name);
+    ret = babl_hash_table_find (db->id_hash, _babl_hash_by_int (db->id_hash, id), NULL, &id);
+  else
+    ret = babl_hash_table_find (db->name_hash, _babl_hash_by_str (db->name_hash, name), NULL, (void *) name);
   return ret;
 }
 
@@ -150,7 +205,7 @@ babl_db_exist_by_id (BablDb *db,
                      int    id)
 {
   Babl *ret;
-  ret = babl_hash_table_find (db->id_hash, babl_hash_by_int (db->id_hash, id), NULL, &id);
+  ret = babl_hash_table_find (db->id_hash, _babl_hash_by_int (db->id_hash, id), NULL, &id);
   return ret;
 }
 
@@ -159,7 +214,7 @@ babl_db_exist_by_name (BablDb     *db,
                        const char *name)
 {
   Babl *ret;
-  ret = babl_hash_table_find (db->name_hash, babl_hash_by_str (db->name_hash, name),
+  ret = babl_hash_table_find (db->name_hash, _babl_hash_by_str (db->name_hash, name),
                               NULL, (void *) name);
   return ret;
 }

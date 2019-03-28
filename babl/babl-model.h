@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BABL_MODEL_H
@@ -32,6 +32,7 @@ typedef struct
   void             *data;    /* user-data, used for palette */
   const Babl       *space;
   void             *model;   /* back pointer to model with sRGB space */
+  BablModelFlag     flags;
 } BablModel;
 
 #endif
