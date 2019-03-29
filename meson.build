@@ -161,6 +161,7 @@ if cc.get_id().startswith('clang') or cc.get_id().startswith('gcc')
 endif
 
 extra_warnings_list = [
+  '-Ofast',
   '-Wdeclaration-after-statement',
   '-Winit-self',
   '-Wmissing-declarations',
@@ -363,7 +364,6 @@ if get_option('with-docs')
     warning('Unable to generate docs in this environment')
   endif
 endif
-
 
 if w3m_bin.found()
   custom_target('README',
