@@ -358,7 +358,7 @@ subdir('extensions')
 subdir('tests')
 subdir('tools')
 if get_option('with-docs')
-  if cc_can_run and env_bin.found() and not build_platform_win32
+  if cc_can_run and env_bin.found() and not platform_win32
     subdir('docs')
   else
     warning('Unable to generate docs in this environment')
