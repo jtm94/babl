@@ -25,7 +25,7 @@ index_html_tmp_env = [
 if wslenv
   # Pass lib path to exe wrapper 
   index_html_tmp_env += [
-    'PATH=' + join_paths(meson.build_root(), 'babl/.libs'),
+    'WSL_PREPATH=' + join_paths(meson.build_root(), 'babl'),
   ]
   # Helper env variable for wsl
   index_html_tmp_env += 'WSLENV=BABL_PATH/p:PATH/l'
