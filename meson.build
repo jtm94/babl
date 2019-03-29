@@ -367,7 +367,7 @@ endif
 
 if w3m_bin.found()
   custom_target('README',
-    input : [ join_paths('docs', 'index.html'), ] ,
+    input: index_html,
     output: [ 'README' ] ,
     command: [
       w3m_bin,
