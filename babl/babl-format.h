@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BABL_FORMAT_H
@@ -28,13 +28,13 @@ typedef struct
   int              components;
   BablComponent  **component;
   BablType       **type;
-  void            *model_data;
+  BablModel       *model;
   const Babl      *space;
+  void            *model_data;
   void            *image_template; /* image template for use with
                                       linear (non-planer) images */
 
   BablSampling   **sampling;
-  BablModel       *model;
   int              bytes_per_pixel;
   int              planar;
   double           loss; /*< average relative error when converting
@@ -43,6 +43,7 @@ typedef struct
                                for conversion paths */
   int              format_n; /* whether the format is a format_n type or not */
   int              palette;
+  const char      *encoding;
 } BablFormat;
 
 #endif

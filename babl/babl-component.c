@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -47,7 +47,10 @@ component_new (const char *name,
 
 
 static int
-is_component_duplicate (Babl *babl, int luma, int chroma, int alpha)
+is_component_duplicate (Babl *babl, 
+                        int   luma, 
+                        int   chroma, 
+                        int   alpha)
 {
   if (babl->component.luma   != luma   ||
       babl->component.chroma != chroma ||

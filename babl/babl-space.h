@@ -13,18 +13,33 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _BABL_SPACE_H
 #define _BABL_SPACE_H
 
+#include "config.h"
 #include <math.h>
 #include <string.h>
 #include "base/util.h"
 #include "babl-matrix.h"
 
+#ifdef HAVE_LCMS
+#include <lcms2.h>
+#endif
+
 BABL_CLASS_DECLARE (space);
+
+typedef struct
+{
+  int           is_cmyk;
+#ifdef HAVE_LCMS
+  cmsHPROFILE   lcms_profile;
+  cmsHTRANSFORM lcms_to_rgba;
+  cmsHTRANSFORM lcms_from_rgba;
+#endif
+} BablCMYK;
 
 typedef struct
 {
@@ -40,8 +55,6 @@ typedef struct
 
   double           xb;  // blue primary chromaticity
   double           yb;
-
-  double           pad; // for when the numbers represent a matrix
 
   const Babl      *trc[3];
   char             name[512]; // XXX: allocate this dynamically instead -
@@ -61,8 +74,12 @@ typedef struct
    * making it possible to round-trip data. Unless it is sRGB, when
    * standard should win.
    */
+  char *icc_profile;
+  int   icc_length;
 
+  BablCMYK cmyk;
 } BablSpace;
+
 
 static inline void babl_space_to_xyzf (const Babl *space, const float *rgb, float *xyz)
 {

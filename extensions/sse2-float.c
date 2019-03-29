@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -38,7 +38,10 @@
 static const float BABL_ALPHA_THRESHOLD_FLOAT = (float)BABL_ALPHA_THRESHOLD;
 
 static void
-conv_rgbaF_linear_rgbAF_linear (const Babl *conversion,const float *src, float *dst, long samples)
+conv_rgbaF_linear_rgbAF_linear (const Babl  *conversion,
+                                const float *src,  
+                                float       *dst, 
+                                long         samples)
 {
   long i = 0;
   long remainder;
@@ -51,14 +54,33 @@ conv_rgbaF_linear_rgbAF_linear (const Babl *conversion,const float *src, float *
 
       for ( ; i < n; i += 2)
         {
+          float alpha0 = ((float *)s)[3];
+          float alpha1 = ((float *)s)[7];
+
+          if (alpha0 < BABL_ALPHA_FLOOR)
+          {
+            if (alpha0 >= 0.0f)
+              alpha0 = BABL_ALPHA_FLOOR;
+            else
+              alpha0 = -BABL_ALPHA_FLOOR;
+          }
+          if (alpha1 < BABL_ALPHA_FLOOR)
+          {
+            if (alpha1 >= 0.0f)
+              alpha1 = BABL_ALPHA_FLOOR;
+            else
+              alpha1 = -BABL_ALPHA_FLOOR;
+          }
+         {
           __v4sf rbaa0, rbaa1;
         
           __v4sf rgba0 = *s++;
           __v4sf rgba1 = *s++;
 
+
           /* Expand alpha */
-          __v4sf aaaa0 = (__v4sf)_mm_shuffle_epi32((__m128i)rgba0, _MM_SHUFFLE(3, 3, 3, 3));
-          __v4sf aaaa1 = (__v4sf)_mm_shuffle_epi32((__m128i)rgba1, _MM_SHUFFLE(3, 3, 3, 3));
+          __v4sf aaaa0 = (__v4sf)_mm_set1_ps(alpha0);
+          __v4sf aaaa1 = (__v4sf)_mm_set1_ps(alpha1);
           
           /* Premultiply */
           rgba0 = rgba0 * aaaa0;
@@ -73,6 +95,7 @@ conv_rgbaF_linear_rgbAF_linear (const Babl *conversion,const float *src, float *
           
           *d++ = rgba0;
           *d++ = rgba1;
+         }
         }
       _mm_empty ();
     }
@@ -82,7 +105,14 @@ conv_rgbaF_linear_rgbAF_linear (const Babl *conversion,const float *src, float *
   remainder = samples - i;
   while (remainder--)
   {
-    const float a = src[3];
+    float a = src[3];
+    if (a <= BABL_ALPHA_FLOOR)
+    {
+      if (a >= 0.0f)
+        a = BABL_ALPHA_FLOOR;
+      else if (a >= -BABL_ALPHA_FLOOR)
+        a = -BABL_ALPHA_FLOOR;
+    }
     dst[0] = src[0] * a;
     dst[1] = src[1] * a;
     dst[2] = src[2] * a;
@@ -94,7 +124,10 @@ conv_rgbaF_linear_rgbAF_linear (const Babl *conversion,const float *src, float *
 }
 
 static void
-conv_rgbAF_linear_rgbaF_linear_shuffle (const Babl *conversion,const float *src, float *dst, long samples)
+conv_rgbAF_linear_rgbaF_linear_shuffle (const Babl  *conversion,
+                                        const float *src,  
+                                        float       *dst, 
+                                        long         samples)
 {
   long i = 0;
   long remainder;
@@ -112,7 +145,7 @@ conv_rgbAF_linear_rgbaF_linear_shuffle (const Babl *conversion,const float *src,
           float alpha0 = ((float *)s)[3];
           pre_rgba0 = *s;
           
-          if (alpha0 <= BABL_ALPHA_THRESHOLD_FLOAT)
+          if (alpha0 == 0.0f)
           {
             /* Zero RGB */
             rgba0 = _mm_setzero_ps();
@@ -131,7 +164,10 @@ conv_rgbAF_linear_rgbaF_linear_shuffle (const Babl *conversion,const float *src,
           /* Shuffle the original alpha value back in */
           rbaa0 = _mm_shuffle_ps(rgba0, pre_rgba0, _MM_SHUFFLE(3, 3, 2, 0));
           rgba0 = _mm_shuffle_ps(rgba0, rbaa0, _MM_SHUFFLE(2, 1, 1, 0));
-          
+
+          if (alpha0 == BABL_ALPHA_FLOOR || alpha0 == -BABL_ALPHA_FLOOR)
+            ((float *)d)[3] = 0.0f;
+
           s++;
           *d++ = rgba0;
         }
@@ -160,11 +196,14 @@ conv_rgbAF_linear_rgbaF_linear_shuffle (const Babl *conversion,const float *src,
 }
 
 static void
-conv_rgbAF_linear_rgbaF_linear_spin (const Babl *conversion,const float *src, float *dst, long samples)
+conv_rgbAF_linear_rgbaF_linear_spin (const Babl  *conversion,
+                                     const float *src,  
+                                     float       *dst, 
+                                     long         samples)
 {
   long i = 0;
   long remainder;
-
+  // XXX : not ported to color preserving premul
   if (((uintptr_t)src % 16) + ((uintptr_t)dst % 16) == 0)
     {
       const long    n = samples;
@@ -379,7 +418,10 @@ func (const Babl *conversion,const float *src, float *dst, long samples)\
 GAMMA_RGBA(conv_rgbaF_linear_rgbaF_gamma, linear_to_gamma_2_2_sse2)
 GAMMA_RGBA(conv_rgbaF_gamma_rgbaF_linear, gamma_2_2_to_linear_sse2)
 
-static void conv_rgbaF_linear_rgbAF_gamma (const Babl *conversion,const float *src, float *dst, long samples)
+static void conv_rgbaF_linear_rgbAF_gamma (const Babl  *conversion,
+                                           const float *src,  
+                                           float       *dst, 
+                                           long         samples)
 {
   float *tmp = alloca (sizeof(float)*4*samples);
   conv_rgbaF_linear_rgbaF_gamma (conversion, src, tmp, samples);
@@ -405,7 +447,10 @@ static void conv_rgbaF_linear_rgbAF_gamma (const Babl *conversion,const float *s
 }\
 
 static void
-conv_yaF_linear_yaF_gamma (const Babl *conversion,const float *src, float *dst, long samples)
+conv_yaF_linear_yaF_gamma (const Babl  *conversion,
+                           const float *src,  
+                           float       *dst, 
+                           long         samples)
 {
   const __v4sf *s = (const __v4sf*)src;
         __v4sf *d = (__v4sf*)dst;
@@ -440,7 +485,10 @@ conv_yaF_linear_yaF_gamma (const Babl *conversion,const float *src, float *dst, 
 
 
 static void
-conv_yaF_gamma_yaF_linear (const Babl *conversion,const float *src, float *dst, long samples)
+conv_yaF_gamma_yaF_linear (const Babl  *conversion,
+                           const float *src,  
+                           float       *dst, 
+                           long         samples)
 {
   const __v4sf *s = (const __v4sf*)src;
         __v4sf *d = (__v4sf*)dst;
@@ -474,7 +522,10 @@ conv_yaF_gamma_yaF_linear (const Babl *conversion,const float *src, float *dst, 
 }
 
 static inline void
-conv_yF_linear_yF_gamma (const Babl *conversion,const float *src, float *dst, long samples)
+conv_yF_linear_yF_gamma (const Babl  *conversion,
+                         const float *src,  
+                         float       *dst, 
+                         long         samples)
 {
   const __v4sf *s = (const __v4sf*)src;
         __v4sf *d = (__v4sf*)dst;
@@ -511,7 +562,10 @@ conv_yF_linear_yF_gamma (const Babl *conversion,const float *src, float *dst, lo
 }
 
 static inline void
-conv_yF_gamma_yF_linear (const Babl *conversion,const float *src, float *dst, long samples)
+conv_yF_gamma_yF_linear (const Babl  *conversion,
+                         const float *src,  
+                         float       *dst, 
+                         long         samples)
 {
   const __v4sf *s = (const __v4sf*)src;
         __v4sf *d = (__v4sf*)dst;
@@ -549,14 +603,20 @@ conv_yF_gamma_yF_linear (const Babl *conversion,const float *src, float *dst, lo
 
 
 static void
-conv_rgbF_linear_rgbF_gamma (const Babl *conversion,const float *src, float *dst, long samples)
+conv_rgbF_linear_rgbF_gamma (const Babl  *conversion,
+                             const float *src,  
+                             float       *dst, 
+                             long         samples)
 {
   conv_yF_linear_yF_gamma (conversion, src, dst, samples * 3);
 }
 
 
 static void
-conv_rgbF_gamma_rgbF_linear (const Babl *conversion,const float *src, float *dst, long samples)
+conv_rgbF_gamma_rgbF_linear (const Babl  *conversion,
+                             const float *src,  
+                             float       *dst, 
+                             long         samples)
 {
   conv_yF_gamma_yF_linear (conversion, src, dst, samples * 3);
 }

@@ -5,6 +5,7 @@ CONCURRENCY_STRESS_TESTS =		\
 endif
 
 C_TESTS =				\
+	cairo_cmyk_hack \
 	grayscale_to_rgb	\
 	chromaticities          \
 	rgb_to_bgr       	\
@@ -17,7 +18,8 @@ C_TESTS =				\
 	float-to-8bit \
 	hsl    \
 	hsva   \
-	types			\
+	types	\
+	format_with_space   \
 	palette \
 	nop \
 	n_components		\
@@ -32,7 +34,7 @@ TESTS = \
 
 TESTS_ENVIRONMENT = LD_LIBRARY_PATH=$(top_builddir)/babl:$LD_LIBRARY_PATH GI_TYPELIB_PATH=$(top_builddir)/babl BABL_PATH=$(top_builddir)/extensions/.libs
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/babl
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/babl $(LCMS_CFLAGS)
 AM_LDFLAGS  = $(THREAD_LIB) -no-install
 
 LDADD = $(top_builddir)/babl/libbabl-@BABL_API_VERSION@.la \

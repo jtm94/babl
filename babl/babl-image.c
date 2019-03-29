@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -22,7 +22,8 @@
 
 #include "babl-internal.h"
 
-static int babl_image_destruct (void *babl)
+static int 
+babl_image_destruct (void *babl)
 {
   BablFormat *format = BABL (babl)->image.format;
   if (format && format->image_template == NULL)
@@ -105,6 +106,15 @@ babl_image_from_linear (char       *buffer,
     {
       case BABL_FORMAT:
         components = format->format.components;
+
+#if 1
+        babl = __atomic_exchange_n (&format->format.image_template, NULL,
+                                    __ATOMIC_ACQ_REL);
+#else
+        /* todo: add a configure check for the above gcc extension and use
+                 a mutex if we do not have it?
+         */
+        babl = NULL;
         if (format->format.image_template != NULL) /* single item cache for speeding
                                                       up subsequent use of linear buffers
                                                       for subsequent accesses
@@ -112,6 +122,10 @@ babl_image_from_linear (char       *buffer,
           {
             babl = format->format.image_template;
             format->format.image_template = NULL;
+          }
+#endif
+        if (babl)
+          {
             for (i = 0; i < components; i++)
               {
                 babl->image.data[i] = buffer + offset;

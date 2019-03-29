@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -27,7 +27,10 @@
 int init (void);
 
 static void
-conv_rgba8_cairo24_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgba8_cairo24_le (const Babl    *conversion,
+                       unsigned char *src, 
+                       unsigned char *dst, 
+                       long           samples)
 {
   long n = samples;
   uint32_t *srci = (void *)src;
@@ -45,7 +48,10 @@ conv_rgba8_cairo24_le (const Babl *conversion,unsigned char *src, unsigned char 
 }
 
 static void
-conv_rgb8_cairo24_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgb8_cairo24_le (const Babl    *conversion,
+                      unsigned char *src, 
+                      unsigned char *dst, 
+                      long           samples)
 {
   long n = samples;
   while (n--)
@@ -64,7 +70,10 @@ conv_rgb8_cairo24_le (const Babl *conversion,unsigned char *src, unsigned char *
 
 #if 0
 static void
-conv_rgbA8_premul_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbA8_premul_cairo32_le (const Babl    *conversion,
+                              unsigned char *src, 
+                              unsigned char *dst, 
+                              long           samples)
 {
   long n = samples;
   while (n--)
@@ -83,7 +92,10 @@ conv_rgbA8_premul_cairo32_le (const Babl *conversion,unsigned char *src, unsigne
 #else
 
 static void
-conv_rgbA8_premul_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbA8_premul_cairo32_le (const Babl    *conversion,
+                              unsigned char *src, 
+                              unsigned char *dst, 
+                              long           samples)
 {
   long n = samples;
   uint32_t *srci = (void *)src;
@@ -101,7 +113,11 @@ conv_rgbA8_premul_cairo32_le (const Babl *conversion,unsigned char *src, unsigne
 }
 #endif
 
-static void conv_cairo32_rgbA8_premul_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+static void 
+conv_cairo32_rgbA8_premul_le (const Babl    *conversion,
+                              unsigned char *src, 
+                              unsigned char *dst, 
+                              long           samples)
 {
   long n = samples;
   while (n--)
@@ -118,8 +134,59 @@ static void conv_cairo32_rgbA8_premul_le (const Babl *conversion,unsigned char *
     }
 }
 
+static void 
+conv_cairo32_rgba8_le (const Babl    *conversion,
+                       unsigned char *src, 
+                       unsigned char *dst, 
+                       long           samples)
+{
+  long n = samples;
+  while (n--)
+    {
+      unsigned char blue   = *src++;
+      unsigned char green  = *src++;
+      unsigned char red    = *src++;
+      unsigned char alpha  = *src++;
 
-static void conv_cairo32_rgbAF_premul_le (const Babl *conversion,unsigned char *src, unsigned char *dst_char, long samples)
+      if (alpha == 0)
+      {
+        *dst++ = 0;
+        *dst++ = 0;
+        *dst++ = 0;
+        *dst++ = 0;
+      }
+      else if (alpha == 255)
+      {
+        *dst++ = red;
+        *dst++ = green;
+        *dst++ = blue;
+        *dst++ = alpha;
+      }
+      else
+      {
+        float falpha = alpha / 255.0;
+        float recip_alpha = 1.0 / falpha;
+ //       unsigned int aa = ((255 << 16) + alpha) / falpha + 0.5;
+
+
+        *dst++ = ((red/255.0) * recip_alpha) * 255 + 0.5f;
+        *dst++ = ((green/255.0) * recip_alpha) * 255 + 0.5f;
+        *dst++ = ((blue/255.0) * recip_alpha) * 255 + 0.5f;
+
+//        *dst++ = (red   * aa + 0x8000) >> 16;
+//        *dst++ = (green * aa + 0x8000) >> 16;
+//        *dst++ = (blue  * aa + 0x8000) >> 16;
+        *dst++ = alpha;
+      }
+    }
+}
+
+
+static void 
+conv_cairo32_rgbAF_premul_le (const Babl    *conversion,
+                              unsigned char *src, 
+                              unsigned char *dst_char, 
+                              long           samples)
 {
   long n = samples;
   float *dst = (void*)dst_char;
@@ -138,24 +205,52 @@ static void conv_cairo32_rgbAF_premul_le (const Babl *conversion,unsigned char *
 }
 
 static void
-conv_rgba8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgba8_cairo32_le (const Babl    *conversion,
+                       unsigned char *src, 
+                       unsigned char *dst, 
+                       long           samples)
 {
   long n = samples;
   uint32_t *dsti = (void*) dst;
   while (n--)
     {
-      unsigned char alpha  = src[3];
-#define div_255(a) ((((a)+128)+(((a)+128)>>8))>>8)
-      *dsti++ = (alpha << 24) +
-                (div_255 (src[0] * alpha) << 16) +
-                (div_255 (src[1] * alpha) << 8) +
-                (div_255 (src[2] * alpha));
+      unsigned char alpha = src[3];
+#if SIZE_MAX >= UINT64_MAX /* 64-bit */
+      uint64_t rbag = ((uint64_t) src[0] << 48) |
+                      ((uint64_t) src[2] << 32) |
+                      ((uint64_t) 255    << 16) |
+                      ((uint64_t) src[1] <<  0);
+      rbag *= alpha;
+      rbag += 0x0080008000800080;
+      rbag += (rbag >> 8) & 0x00ff00ff00ff00ff;
+      rbag &= 0xff00ff00ff00ff00;
+      *dsti++ = (uint32_t) (rbag >>  0) |
+                (uint32_t) (rbag >> 40);
+#else /* 32-bit */
+      uint32_t rb = ((uint32_t) src[0] << 16) |
+                    ((uint32_t) src[2] <<  0);
+      uint64_t ag = ((uint32_t) 255    << 16) |
+                    ((uint32_t) src[1] <<  0);
+      rb *= alpha;
+      ag *= alpha;
+      rb += 0x00800080;
+      ag += 0x00800080;
+      rb += (rb >> 8) & 0x00ff00ff;
+      ag += (ag >> 8) & 0x00ff00ff;
+      rb &= 0xff00ff00;
+      ag &= 0xff00ff00;
+      *dsti++ = (uint32_t) (ag >> 0) |
+                (uint32_t) (rb >> 8);
+#endif
       src+=4;
     }
 }
 
 static void
-conv_rgb8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgb8_cairo32_le (const Babl    *conversion,
+                      unsigned char *src, 
+                      unsigned char *dst, 
+                      long           samples)
 {
   long n = samples;
   while (n--)
@@ -175,11 +270,16 @@ conv_rgb8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *
 
 
 static void
-conv_yA8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_yA8_cairo32_le (const Babl    *conversion,
+                     unsigned char *src, 
+                     unsigned char *dst, 
+                     long           samples)
 {
   long n = samples;
   while (n--)
     {
+#define div_255(a) ((((a)+128)+(((a)+128)>>8))>>8)
+
       unsigned char gray   = *src++;
       unsigned char alpha  = *src++;
       unsigned char val = div_255 (gray * alpha);
@@ -194,7 +294,10 @@ conv_yA8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *d
 }
 
 static void
-conv_yA16_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_yA16_cairo32_le (const Babl    *conversion,
+                      unsigned char *src, 
+                      unsigned char *dst, 
+                      long           samples)
 {
   long n = samples;
   uint16_t *ssrc = (void*) src;
@@ -211,7 +314,10 @@ conv_yA16_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *
 }
 
 static void
-conv_y8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_y8_cairo32_le (const Babl    *conversion,
+                    unsigned char *src, 
+                    unsigned char *dst, 
+                    long           samples)
 {
   long n = samples;
   while (n--)
@@ -225,7 +331,10 @@ conv_y8_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *ds
 }
 
 static void
-conv_y16_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_y16_cairo32_le (const Babl    *conversion,
+                     unsigned char *src, 
+                     unsigned char *dst, 
+                     long           samples)
 {
   long n = samples;
   uint16_t *s16 = (void*)src;
@@ -243,7 +352,8 @@ conv_y16_cairo32_le (const Babl *conversion,unsigned char *src, unsigned char *d
 }
 
 static void
-conv_rgbA_gamma_float_cairo32_le (const Babl *conversion,unsigned char *src,
+conv_rgbA_gamma_float_cairo32_le (const Babl    *conversion,
+                                  unsigned char *src,
                                   unsigned char *dst,
                                   long           samples)
 {
@@ -266,7 +376,8 @@ conv_rgbA_gamma_float_cairo32_le (const Babl *conversion,unsigned char *src,
 }
 
 static void
-conv_rgbafloat_cairo32_le (const Babl *conversion,unsigned char *src,
+conv_rgbafloat_cairo32_le (const Babl    *conversion,
+                           unsigned char *src,
                            unsigned char *dst,
                            long           samples)
 {
@@ -314,7 +425,8 @@ conv_rgbafloat_cairo32_le (const Babl *conversion,unsigned char *src,
 
 
 static void
-conv_yafloat_cairo32_le (const Babl *conversion,unsigned char *src,
+conv_yafloat_cairo32_le (const Babl    *conversion,
+                         unsigned char *src,
                          unsigned char *dst,
                          long           samples)
 {
@@ -392,6 +504,9 @@ init (void)
       babl_conversion_new (f32, babl_format ("R'aG'aB'aA u8"), "linear",
                            conv_cairo32_rgbA8_premul_le, NULL);
 
+      babl_conversion_new (f32, babl_format ("R'G'B'A u8"), "linear",
+                           conv_cairo32_rgba8_le, NULL);
+
       babl_conversion_new (babl_format ("R'aG'aB'aA u8"), f32, "linear",
                            conv_rgbA8_premul_cairo32_le, NULL);
 
@@ -457,6 +572,72 @@ init (void)
     babl_component ("A"),
     NULL
     );
+
+
+  /* formats that distribute different subset of the additive mixing variants
+   * of CMYK producing two syntetic RGB formats we run in parallel to derive
+   * a 4 instead of 3 component result, the same method could be used to
+   * extend processing/drawing with cairo to spectral data.
+   */
+  if (littleendian)
+  {
+    babl_format_new ("name", "cairo-ACMK32",
+                     babl_model ("camayakaA"),
+                     babl_type ("u8"),
+                     babl_component ("ka"),
+                     babl_component ("ma"),
+                     babl_component ("ca"),
+                     babl_component ("A"),
+                     NULL);
+    babl_format_new ("name", "cairo-ACYK32",
+                     babl_model ("camayakaA"),
+                     babl_type ("u8"),
+                     babl_component ("ka"),
+                     babl_component ("ya"),
+                     babl_component ("ca"),
+                     babl_component ("A"),
+                     NULL);
+  }
+  else
+  {
+    babl_format_new ("name", "cairo-ACMK32",
+                     babl_model ("camayakaA"),
+                     babl_type ("u8"),
+                     babl_component ("A"),
+                     babl_component ("ca"),
+                     babl_component ("ma"),
+                     babl_component ("ka"),
+                     NULL);
+    babl_format_new ("name", "cairo-ACYK32",
+                     babl_model ("camayakaA"),
+                     babl_type ("u8"),
+                     babl_component ("A"),
+                     babl_component ("ca"),
+                     babl_component ("ya"),
+                     babl_component ("ka"),
+                     NULL);
+  }
+
+  /* companion subset formats for setting pango u16 RGB color values from cmykA
+   * */
+  babl_format_new ("name", "cykA u16",
+                   babl_model ("cmykA"),
+                   babl_type ("u16"),
+                   babl_component ("cyan"),
+                   babl_component ("yellow"),
+                   babl_component ("key"),
+                   babl_component ("A"),
+                   NULL);
+  babl_format_new ("name", "cmkA u16",
+                   babl_model ("cmykA"),
+                   babl_type ("u16"),
+                   babl_component ("cyan"),
+                   babl_component ("magenta"),
+                   babl_component ("key"),
+                   babl_component ("A"),
+                   NULL);
+
+
 
   return 0;
 }

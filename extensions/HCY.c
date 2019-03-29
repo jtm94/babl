@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
  /*
@@ -35,27 +35,33 @@
 #define RGB_LUMA_BLUE 0.114 //0.0722
 #define EPSILON 1e-10
 
-static void rgba_to_hcya     (const Babl *conversion,char *src,
-                              char *dst,
-                              long  samples);
+static void rgba_to_hcya     (const Babl *conversion,
+                              char       *src,
+                              char       *dst,
+                              long        samples);
 
-static void hcya_to_rgba     (const Babl *conversion,char *src,
-                              char *dst,
-                              long  samples);
+static void hcya_to_rgba     (const Babl *conversion,
+                              char       *src,
+                              char       *dst,
+                              long        samples);
 
-static void rgba_to_hcy      (const Babl *conversion,char *src,
-                              char *dst,
-                              long  samples);
+static void rgba_to_hcy      (const Babl *conversion,
+                              char       *src,
+                              char       *dst,
+                              long        samples);
 
-static void hcy_to_rgba      (const Babl *conversion,char *src,
-                              char *dst,
-                              long  samples);
+static void hcy_to_rgba      (const Babl *conversion,
+                              char       *src,
+                              char       *dst,
+                              long        samples);
 
-static void rgba_to_hcy_step (char *src,
-                              char *dst);
+static void 
+rgba_to_hcy_step (char *src,
+                  char *dst);
 
-static void hcy_to_rgba_step (char *src,
-                              char *dst);
+static void 
+hcy_to_rgba_step (char *src,
+                  char *dst);
 
 static void components       (void);
 static void models           (void);
@@ -94,6 +100,7 @@ models (void)
     babl_component ("HCY chroma"),
     babl_component ("HCY luma"),
     babl_component ("alpha"),
+    "alpha",
     NULL
   );
 
@@ -287,9 +294,10 @@ hcy_to_rgba_step (char *src,
 }
 
 static void
-rgba_to_hcya (const Babl *conversion,char *src,
-              char *dst,
-              long  samples)
+rgba_to_hcya (const Babl *conversion,
+              char       *src,
+              char       *dst,
+              long        samples)
 {
   long n = samples;
 
@@ -327,9 +335,10 @@ hcya_to_rgba (const Babl *conversion,char *src,
 }
 
 static void
-rgba_to_hcy (const Babl *conversion,char *src,
-             char *dst,
-             long  samples)
+rgba_to_hcy (const Babl *conversion,
+             char       *src,
+             char       *dst,
+             long        samples)
 {
   long n = samples;
 
@@ -343,9 +352,10 @@ rgba_to_hcy (const Babl *conversion,char *src,
 }
 
 static void
-hcy_to_rgba (const Babl *conversion,char *src,
-             char *dst,
-             long  samples)
+hcy_to_rgba (const Babl *conversion,
+             char       *src,
+             char       *dst,
+             long        samples)
 {
   long n = samples;
 

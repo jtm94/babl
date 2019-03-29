@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 /* Implementation of hash table data structure based on coalesced hashing.
@@ -32,43 +32,6 @@ hash_insert (BablHashTable *htab,
 
 static void
 hash_rehash (BablHashTable *htab);
-
-
-int
-babl_hash_by_str (BablHashTable *htab,
-                  const char    *str)
-{
-  int   hash = 0;
-
-  while (*str)
-  {
-    hash += *str++;
-    hash += (hash << 10);
-    hash ^= (hash >> 6);
-  }
-  hash += (hash << 3);
-  hash ^= (hash >> 11);
-  hash += (hash << 15);
-
-  return (hash & htab->mask);
-}
-
-int
-babl_hash_by_int (BablHashTable *htab,
-                  int           id)
-{
-  int   hash = 0;
-  hash +=  id & 0xFF;
-  hash += (hash << 10);
-  hash ^= (hash >> 6);
-  id >>= 8;
-  hash +=  id & 0xFF;
-  hash += (hash << 3);
-  hash ^= (hash >> 11);
-  hash += (hash << 15);
-
-  return (hash & htab->mask);
-}
 
 static inline int
 hash_insert (BablHashTable *htab,

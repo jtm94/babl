@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -63,25 +63,26 @@ models (void)
 {
   babl_model_new (
     "id", BABL_YCBCR,
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_component_from_id (BABL_CB),
     babl_component_from_id (BABL_CR),
     NULL);
 
   babl_model_new (
     "id", BABL_YCBCR_ALPHA,
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_component_from_id (BABL_CB),
     babl_component_from_id (BABL_CR),
     babl_component_from_id (BABL_ALPHA),
+    "alpha",
     NULL);
 }
 
 static void
 rgba_to_ycbcra (BablConversion *conversion,
-                char *src,
-                char *dst,
-                long  n)
+                char           *src,
+                char           *dst,
+                long            n)
 {
   while (n--)
     {
@@ -113,9 +114,9 @@ rgba_to_ycbcra (BablConversion *conversion,
 
 static void
 rgba_to_ycbcr (BablConversion *conversion,
-               char *src,
-               char *dst,
-               long  n)
+               char           *src,
+               char           *dst,
+               long            n)
 {
   while (n--)
     {
@@ -144,9 +145,9 @@ rgba_to_ycbcr (BablConversion *conversion,
 
 static void
 ycbcra_to_rgba (BablConversion *conversion,
-                char *src,
-                char *dst,
-                long  n)
+                char           *src,
+                char           *dst,
+                long            n)
 {
   while (n--)
     {
@@ -177,9 +178,9 @@ ycbcra_to_rgba (BablConversion *conversion,
 
 static void
 ycbcr_to_rgba (BablConversion *conversion,
-               char *src,
-               char *dst,
-               long  n)
+               char           *src,
+               char           *dst,
+               long            n)
 {
   while (n--)
     {
@@ -245,7 +246,7 @@ formats (void)
     babl_model_from_id (BABL_YCBCR),
     babl_type_from_id (BABL_U8_LUMA),
     babl_sampling (1, 1),
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_type_from_id (BABL_U8_CHROMA),
     babl_sampling (2, 2),
     babl_component_from_id (BABL_CB),
@@ -263,7 +264,7 @@ if (0)
     babl_model_from_id (BABL_YCBCR),
     babl_type_from_id (BABL_U8_LUMA),
     babl_sampling (1, 1),
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_type_from_id (BABL_U8_CHROMA),
     babl_sampling (2, 2),
     babl_component_from_id (BABL_CB),
@@ -279,7 +280,7 @@ if (0)
     babl_model_from_id (BABL_YCBCR),
     babl_type_from_id (BABL_U8_LUMA),
     babl_sampling (1, 1),
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_type_from_id (BABL_U8_CHROMA),
     babl_sampling (2, 1),
     babl_component_from_id (BABL_CB),
@@ -294,7 +295,7 @@ if (0)
     babl_model_from_id (BABL_YCBCR),
     babl_type_from_id (BABL_U8_LUMA),
     babl_sampling (1, 1),
-    babl_component_from_id (BABL_LUMA),
+    babl_component_from_id (BABL_GRAY_NONLINEAR),
     babl_type_from_id (BABL_U8_CHROMA),
     babl_sampling (4, 1),
     babl_component_from_id (BABL_CB),

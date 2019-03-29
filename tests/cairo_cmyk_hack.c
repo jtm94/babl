@@ -23,23 +23,17 @@
 #define PIXELS       6
 #define TOLERANCE    0
 
-unsigned char source_buf [PIXELS * 3] =
-{ 0,     0,   0,
-  127, 127, 127,
-  255, 255, 255,
-  255, 0.0, 0.0,
-  0.0, 255, 0.0,
-  0.0, 0.0, 255 };
+unsigned char source_buf [PIXELS * 5] =
+{ 0,     0,   0, 22, 33,
+  127, 127, 127, 12, 33,
+  255, 225, 255, 33, 33,
+  255, 0.0, 0.0, 4,  33,
+  0.0, 255, 0.0, 122,33,
+  0.0, 0.0, 255, 222,33};
 
-unsigned char reference_buf [PIXELS * 3] =
-{ 0,   128, 128,
-  136, 128, 128,
-  255, 128, 128,
-  138, 209, 198,
-  224, 49,  209,
-  75,  196, 16 };
-
-unsigned char destination_buf [PIXELS * 3];
+unsigned char cmk_buf [PIXELS * 4];
+unsigned char cyk_buf [PIXELS * 4];
+unsigned char dest_buf [PIXELS * 5];
 
 static int
 test (void)
@@ -47,16 +41,25 @@ test (void)
   int i;
   int OK = 1;
 
-  babl_process (babl_fish ("R'G'B' u8", "CIE Lab u8"),
-                source_buf, destination_buf,
+  babl_process (babl_fish ("camayakaA u8", "cairo-ACYK32"),
+                source_buf, cyk_buf,
+                PIXELS);
+  babl_process (babl_fish ("camayakaA u8", "cairo-ACMK32"),
+                source_buf, cmk_buf,
                 PIXELS);
 
-  for (i = 0; i < PIXELS * 3; i++)
+  babl_process (babl_fish ("cairo-ACMK32", "camayakaA u8"),
+                cmk_buf, dest_buf,
+                PIXELS);
+  babl_process (babl_fish ("cairo-ACYK32", "camayakaA u8"),
+                cyk_buf, dest_buf,
+                PIXELS);
+
+  for (i = 0; i < PIXELS * 5; i++)
     {
-      if (fabs (destination_buf[i] - reference_buf[i]) > TOLERANCE)
+      if (fabs (dest_buf[i] - source_buf[i]) > TOLERANCE)
         {
-          fprintf (stderr, "%2i (%2i%%3=%i, %2i/3=%i) is %i should be %i",
-                    i, i, i % 3, i, i / 3, destination_buf[i], reference_buf[i]);
+          fprintf (stderr, "%i is wrong\n", i);
           OK = 0;
         }
     }

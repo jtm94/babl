@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -67,14 +67,16 @@ models (void)
     babl_component ("Cb"),
     babl_component ("Cr"),
     babl_component ("alpha"),
+    "alpha",
     NULL);
 }
 
 
 static void
-rgba_to_ycbcra709 (const Babl *conversion,char *src,
-                   char *dst,
-                   long  n)
+rgba_to_ycbcra709 (const Babl *conversion,
+                   char       *src,
+                   char       *dst,
+                   long        n)
 {
   while (n--)
     {
@@ -105,9 +107,10 @@ rgba_to_ycbcra709 (const Babl *conversion,char *src,
 
 
 static void
-rgba_to_ycbcr709 (const Babl *conversion,char *src,
-                  char *dst,
-                  long  n)
+rgba_to_ycbcr709 (const Babl *conversion,
+                  char       *src,
+                  char       *dst,
+                  long        n)
 {
   while (n--)
     {
@@ -136,9 +139,10 @@ rgba_to_ycbcr709 (const Babl *conversion,char *src,
 
 
 static void
-ycbcra709_to_rgba (const Babl *conversion,char *src,
-                char *dst,
-                long  n)
+ycbcra709_to_rgba (const Babl *conversion,
+                   char       *src,
+                   char       *dst,
+                   long        n)
 {
   while (n--)
     {
@@ -169,9 +173,10 @@ ycbcra709_to_rgba (const Babl *conversion,char *src,
 
 
 static void
-ycbcr709_to_rgba (const Babl *conversion,char *src,
-               char *dst,
-               long  n)
+ycbcr709_to_rgba (const Babl *conversion,
+                  char       *src,
+                  char       *dst,
+                  long        n)
 {
   while (n--)
     {

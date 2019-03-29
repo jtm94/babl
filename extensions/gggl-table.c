@@ -13,7 +13,7 @@
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with GGGL; if not, see <http://www.gnu.org/licenses/>.
+ *    along with GGGL; if not, see <https://www.gnu.org/licenses/>.
  *
  *    Rights are granted to use this shared object in libraries covered by
  *    LGPL. (exception added, during import into babl CVS.)
@@ -36,17 +36,12 @@
  *
  * http://www.cinenet.net/~spitzak/conversion/sketches_0265.pdf
  *
- * initially ignoring any diffusion, to keep the implementation
- * smaller, and interchangeable with the non optimized version.
- *
  * due to ability to be able to relicence gggl under a different
  * licence than GPL, I avoided the temptation to look at the
  * source files in the same location, in case I was going to
  * need this piece of code for projects where GPL compatibility
  * was a must.
  *
- * TODO: error diffusion,
- *       gamma correction  (not really,. gamma correction belongs in seperate ops,.
  */
 
 /* lookup tables used in conversion */
@@ -65,7 +60,7 @@ table_init (void)
 {
   if (table_inited)
     return;
-  
+
   table_8_F_int = (void*)(table_8_F);
 
   table_inited = 1;
@@ -108,8 +103,8 @@ table_init (void)
           }
         else
           {
-            c = lrint (u.f * 255.0);
-            s = lrint (u.f * 65535.0);
+            c = u.f * 255 + 0.5f;
+            s = u.f * 65535 + 0.5f;
           }
 
         /*fprintf (stderr, "%2.3f=%03i %05i ", f, c, (*hi));
@@ -120,7 +115,7 @@ table_init (void)
         table_F_16[u.s[1]] = s;
       }
   }
-  /* fix tables to ensure 1:1 conversions back and forth */
+  /* patch tables to ensure 1:1 conversions back and forth */
   if (0)
     {                           /*FIXME: probably not the right way to do it,.. must sit down and scribble on paper */
       int i;
@@ -149,7 +144,10 @@ gggl_float_to_index16 (float f)
 }
 
 static void
-conv_F_8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_F_8 (const Babl    *conversion,
+          unsigned char *src, 
+          unsigned char *dst, 
+          long samples)
 {
   long n = samples;
 
@@ -166,7 +164,10 @@ conv_F_8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long sa
 
 
 static void
-conv_F_16 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_F_16 (const Babl    *conversion,
+           unsigned char *src, 
+           unsigned char *dst, 
+           long samples)
 {
   long n = samples;
 
@@ -182,7 +183,10 @@ conv_F_16 (const Babl *conversion,unsigned char *src, unsigned char *dst, long s
 }
 
 static void
-conv_8_F (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_8_F (const Babl    *conversion,
+          unsigned char *src, 
+          unsigned char *dst, 
+          long samples)
 {
   long n = samples;
 
@@ -197,7 +201,10 @@ conv_8_F (const Babl *conversion,unsigned char *src, unsigned char *dst, long sa
 }
 
 static void
-conv_rgb8_rgbaF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgb8_rgbaF (const Babl    *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long samples)
 {
   long n = samples;
 
@@ -220,7 +227,10 @@ conv_rgb8_rgbaF (const Babl *conversion,unsigned char *src, unsigned char *dst, 
 }
 
 static void
-conv_16_F (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_16_F (const Babl    *conversion,
+           unsigned char *src, 
+           unsigned char *dst, 
+           long samples)
 {
   long n = samples;
 
@@ -235,7 +245,10 @@ conv_16_F (const Babl *conversion,unsigned char *src, unsigned char *dst, long s
 }
 
 static void
-conv_rgbaF_rgb8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbaF_rgb8 (const Babl    *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long samples)
 {
   long n = samples;
 
@@ -263,19 +276,28 @@ conv_rgbaF_rgb8 (const Babl *conversion,unsigned char *src, unsigned char *dst, 
 
 /*********/
 static void
-conv_rgbaF_rgba8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbaF_rgba8 (const Babl    *conversion,
+                  unsigned char *src, 
+                  unsigned char *dst, 
+                  long samples)
 {
   conv_F_8 (conversion, src, dst, samples * 4);
 }
 
 static void
-conv_rgbF_rgb8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbF_rgb8 (const Babl    *conversion,
+                unsigned char *src, 
+                unsigned char *dst, 
+                long samples)
 {
   conv_F_8 (conversion, src, dst, samples * 3);
 }
 
 static void
-conv_gaF_ga8 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_gaF_ga8 (const Babl    *conversion,
+              unsigned char *src, 
+              unsigned char *dst, 
+              long samples)
 {
   conv_F_8 (conversion, src, dst, samples * 2);
 }
@@ -285,19 +307,28 @@ conv_gaF_ga8 (const Babl *conversion,unsigned char *src, unsigned char *dst, lon
 #define conv_gAF_gA8        conv_gaF_ga8
 
 static void
-conv_rgbaF_rgba16 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbaF_rgba16 (const Babl    *conversion,
+                   unsigned char *src, 
+                   unsigned char *dst, 
+                   long samples)
 {
   conv_F_16 (conversion, src, dst, samples * 4);
 }
 
 static void
-conv_rgbF_rgb16 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgbF_rgb16 (const Babl    *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long samples)
 {
   conv_F_16 (conversion, src, dst, samples * 3);
 }
 
 static void
-conv_gaF_ga16 (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_gaF_ga16 (const Babl    *conversion,
+               unsigned char *src, 
+               unsigned char *dst, 
+               long samples)
 {
   conv_F_16 (conversion, src, dst, samples * 2);
 }
@@ -307,20 +338,29 @@ conv_gaF_ga16 (const Babl *conversion,unsigned char *src, unsigned char *dst, lo
 #define conv_gAF_gA16        conv_gaF_ga16
 
 static void
-conv_rgba8_rgbaF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgba8_rgbaF (const Babl    *conversion,
+                  unsigned char *src, 
+                  unsigned char *dst, 
+                  long samples)
 {
   conv_8_F (conversion, src, dst, samples * 4);
 }
 
 
 static void
-conv_rgb8_rgbF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgb8_rgbF (const Babl    *conversion,
+                unsigned char *src, 
+                unsigned char *dst, 
+                long samples)
 {
   conv_8_F (conversion, src, dst, samples * 3);
 }
 
 static void
-conv_ga8_gaF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_ga8_gaF (const Babl    *conversion,
+              unsigned char *src, 
+              unsigned char *dst, 
+              long samples)
 {
   conv_8_F (conversion, src, dst, samples * 2);
 }
@@ -330,19 +370,28 @@ conv_ga8_gaF (const Babl *conversion,unsigned char *src, unsigned char *dst, lon
 #define conv_g8_gF          conv_8_F
 
 static void
-conv_rgba16_rgbaF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgba16_rgbaF (const Babl    *conversion,
+                   unsigned char *src, 
+                   unsigned char *dst, 
+                   long samples)
 {
   conv_16_F (conversion, src, dst, samples * 4);
 }
 
 static void
-conv_rgb16_rgbF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_rgb16_rgbF (const Babl    *conversion,
+                 unsigned char *src, 
+                 unsigned char *dst, 
+                 long samples)
 {
   conv_16_F (conversion, src, dst, samples * 3);
 }
 
 static void
-conv_ga16_gaF (const Babl *conversion,unsigned char *src, unsigned char *dst, long samples)
+conv_ga16_gaF (const Babl    *conversion,
+               unsigned char *src, 
+               unsigned char *dst, 
+               long samples)
 {
   conv_16_F (conversion, src, dst, samples * 2);
 }

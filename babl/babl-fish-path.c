@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
+ * <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -21,7 +21,7 @@
 #include "babl-internal.h"
 #include "babl-ref-pixels.h"
 
-#define BABL_TOLERANCE             0.000005
+#define BABL_TOLERANCE             0.0000047
 #define BABL_MAX_COST_VALUE        2000000
 #define BABL_HARD_MAX_PATH_LENGTH  8
 #define BABL_MAX_NAME_LEN          1024
@@ -103,7 +103,8 @@ static int max_path_length (void);
 static int debug_conversions = 0;
 int _babl_instrument = 0;
 
-double _babl_legal_error (void)
+double 
+_babl_legal_error (void)
 {
   static double error = 0.0;
   const char   *env;
@@ -132,7 +133,8 @@ double _babl_legal_error (void)
   return error;
 }
 
-static int max_path_length (void)
+static int 
+max_path_length (void)
 {
   static int  max_length = 0;
   const char *env;
@@ -155,7 +157,8 @@ static int max_path_length (void)
   return max_length;
 }
 
-int _babl_max_path_len (void)
+int 
+_babl_max_path_len (void)
 {
   return max_path_length ();
 }
@@ -464,6 +467,34 @@ _babl_fish_prepare_bpp (Babl *babl)
      }
 }
 
+void
+_babl_fish_missing_fast_path_warning (const Babl *source,
+                                      const Babl *destination)
+{
+#ifndef BABL_UNSTABLE
+  if (debug_conversions)
+#endif
+  {
+    static int warnings = 0;
+
+    if (_babl_legal_error() <= 0.0000000001)
+      return;
+
+    if (warnings++ == 0)
+      fprintf (stderr,
+"Missing fast-path babl conversion detected, Implementing missing babl fast paths\n"
+"accelerates GEGL, GIMP and other software using babl, warnings are printed on\n"
+"first occurance of formats used where a conversion has to be synthesized\n"
+"programmatically by babl based on format description\n"
+"\n");
+
+    fprintf (stderr, "*WARNING* missing babl fast path(s): \"%s\" to \"%s\"\n",
+       babl_get_name (source),
+       babl_get_name (destination));
+
+  }
+}
+
 
 static Babl *
 babl_fish_path2 (const Babl *source,
@@ -568,7 +599,31 @@ babl_fish_path2 (const Babl *source,
     /* second attempt,. at path length + 1*/
     if (babl->fish_path.conversion_list->count == 0 &&
         max_path_length () + 1 <= BABL_HARD_MAX_PATH_LENGTH)
+    {
       get_conversion_path (&pc, (Babl *) source, 0, max_path_length () + 1, tolerance);
+
+#if 0
+      if (babl->fish_path.conversion_list->count)
+      {
+        fprintf (stderr, "babl is using a rather long chain, room exists for optimization here\n");
+        babl_list_each (babl->fish_path.conversion_list, show_item, NULL);
+      }
+#endif
+    }
+
+    /* third attempt,. at path length + 2 */
+    if (babl->fish_path.conversion_list->count == 0 &&
+        max_path_length () + 2 <= BABL_HARD_MAX_PATH_LENGTH)
+    {
+      get_conversion_path (&pc, (Babl *) source, 0, max_path_length () + 2, tolerance);
+#if 0
+      if (babl->fish_path.conversion_list->count)
+      {
+        fprintf (stderr, "babl is using very long chain, should be optimized\n");
+        babl_list_each (babl->fish_path.conversion_list, show_item, NULL);
+      }
+#endif
+    }
 
     babl_in_fish_path--;
     babl_free (pc.current_path);
@@ -579,28 +634,11 @@ babl_fish_path2 (const Babl *source,
       babl_free (babl);
       babl_mutex_unlock (babl_format_mutex);
 
-#ifndef BABL_UNSTABLE
-      if (debug_conversions)
-#endif
-      {
-        static int warnings = 0;
+      /* it is legitimate for reference paths to be faster than long chains
+         of paths, thus it is time to retire this warning. XXX: remove it fully 
 
-        if (_babl_legal_error() <= 0.0000000001)
-            return NULL;
+          _babl_fish_missing_fast_path_warning (source, destination); */
 
-        if (warnings++ == 0)
-          fprintf (stderr,
-"Missing fast-path babl conversion detected, Implementing missing babl fast paths\n"
-"accelerates GEGL, GIMP and other software using babl, warnings are printed on\n"
-"first occurance of formats used where a conversion has to be synthesized\n"
-"programmatically by babl based on format description\n"
-"\n");
-
-        fprintf (stderr, "*WARNING* missing babl fast path(s): \"%s\" to \"%s\"\n",
-           babl_get_name (source),
-           babl_get_name (destination));
-
-      }
       return NULL;
     }
 
@@ -617,9 +655,10 @@ babl_fish_path2 (const Babl *source,
   return babl;
 }
 
-const Babl * babl_fast_fish (const void *source_format,
-                             const void *destination_format,
-                             const char *performance)
+const Babl * 
+babl_fast_fish (const void *source_format,
+                const void *destination_format,
+                const char *performance)
 {
   double tolerance = 0.0;
 
