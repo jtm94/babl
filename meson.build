@@ -321,6 +321,21 @@ rsvg_convert_bin = find_program('rsvg-convert', required: false,
 test_bin = find_program('test', required: false, native: true)
 w3m_bin = find_program('w3m', required: false, native: true)
 
+################################################################################
+# Build flags
+
+build_docs = false
+
+if get_option('with-docs')
+  if cc_can_run and env_bin.found() and \
+     not build_platform_win32 and \
+     not wslenv
+    build_docs = true
+  else
+    warning('Unable to generate docs in this environment')
+  endif
+endif
+
 
 ################################################################################
 # Configuration files
@@ -357,15 +372,11 @@ subdir('babl')
 subdir('extensions')
 subdir('tests')
 subdir('tools')
-if get_option('with-docs')
-  if cc_can_run and env_bin.found() and not platform_win32
-    subdir('docs')
-  else
-    warning('Unable to generate docs in this environment')
-  endif
+if build_docs
+  subdir('docs')
 endif
 
-if w3m_bin.found()
+if w3m_bin.found() and build_docs
   custom_target('README',
     input: index_html,
     output: [ 'README' ] ,
