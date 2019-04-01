@@ -161,7 +161,6 @@ if cc.get_id().startswith('clang') or cc.get_id().startswith('gcc')
 endif
 
 extra_warnings_list = [
-  '-Ofast',
   '-Wdeclaration-after-statement',
   '-Winit-self',
   '-Wmissing-declarations',
