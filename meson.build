@@ -286,11 +286,11 @@ endif
 # Dependencies
 
 # LCMS
-with_lcms = get_option('with-lcms')
-if with_lcms
-  lcms = cc.find_library('lcms2', required : true)
+if get_option('with-lcms')
+  lcms = dependency('lcms2', required : true)
   if lcms.found()
-    conf.set('HAVE_LCMS', 1, description: 'Define to 1 if liblcms2 is available')
+    conf.set('HAVE_LCMS', 1, description: 
+      'Define to 1 if liblcms2 is available')
   endif
 else
   lcms = dependency('', required : false)
@@ -335,7 +335,7 @@ endif
 
 if wslenv 
   build_docs = false
-  warning('Doc generation not working in wsl at presnt FIXME')
+  warning('Doc generation not working in wsl at present FIXME')
 endif
 
 ################################################################################
