@@ -326,15 +326,17 @@ w3m_bin = find_program('w3m', required: false, native: true)
 build_docs = false
 
 if get_option('with-docs')
-  if cc_can_run and env_bin.found() and \
-     not build_platform_win32 and \
-     not wslenv
+  if cc_can_run and env_bin.found() and not build_platform_win32
     build_docs = true
   else
     warning('Unable to generate docs in this environment')
   endif
 endif
 
+if wslenv 
+  build_docs = false
+  warning('Doc generation not working in wsl at presnt FIXME')
+endif
 
 ################################################################################
 # Configuration files
