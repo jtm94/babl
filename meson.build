@@ -334,7 +334,7 @@ if get_option('with-docs')
 endif
 
 if wslenv 
-  build_docs = false
+  build_docs = true
   warning('Doc generation not working in wsl at present FIXME')
 endif
 
